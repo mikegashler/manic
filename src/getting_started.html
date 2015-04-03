@@ -1,0 +1,115 @@
+<html>
+<head>
+	<style>
+		.toc {
+			margin-left: 30px;
+		}
+		.code {
+			margin-left: 30px;
+			color:#000000;
+			background-color:#ffffff;
+		}
+		.shell {
+			margin-left: 30px;
+			color:#000000;
+			background-color:#ffffff;
+		}
+	</style>
+</head>
+<body bgcolor=#d0d0b0><br><br>
+
+<table align=center cellpadding=50 border=1 bgcolor=#e0e0c0 width=720><tr><td>
+
+<h1>A Java implementation of the MANIC cognitive architecture</h1>
+
+<ul>
+	<li>Here is a <a href="http://uaf46365.ddns.uark.edu/lab/manic.pdf">paper</a> about the MANIC cognitive architecture.
+		</li><br><br>
+
+	<li>The first thing to know is that MANIC requires a "teacher"
+		to help train it to develop reasonable priorities.
+		In the Java implementation, a teacher is a class that implements the ITeacher interface.
+		Here is a simple example teacher that prioritizes having a small first element of the observation vector:
+<pre class="code">
+class MyTeacher implements ITeacher {
+
+  // Prefer plans that make the first observed element smaller
+  public int compare(double[] beliefs, Plan planA, Plan planB,
+    TransitionModel transitionModel, ObservationModel observationModel) {
+
+    // Determine where the plans will end
+    double[] endBeliefsA = transitionModel.getFinalBeliefs(beliefs, planA);
+    double[] endBeliefsB = transitionModel.getFinalBeliefs(beliefs, planB);
+    double[] endObsA = observationModel.beliefsToObservations(endBeliefsA);
+    double[] endObsB = observationModel.beliefsToObservations(endBeliefsB);
+
+    // Compare the endings
+    if(endObsA[0] &lt; endObsB[0])
+      return 1; // Plan A is better
+    else if(endObsB[0] &lt; endObsA[0])
+      return -1; // Plan B is better
+    else
+      return 0; // I either cannot or will not say which plan is better
+  }
+
+}
+</pre>
+		</li><br><br>
+	<li>
+		Here is an example for instantiating a MANIC agent:
+<pre class="code">
+ManicAgent agent = new ManicAgent(new Random(1234), new MyTeacher(), 8, 3, 2);
+</pre>
+		This agent uses an observation vector of size 8, an internal belief vector of size 3,
+		and an action vector of size 2. All of these vectors are assumed to consist of continuous
+		values. (If you need to use binary values, perhaps it might work to treat all negative
+		values as false and positive values as true?)<br><br>
+
+		The observation vector is the input to the agent. It contains values the agent can sense.
+		The belief vector is used internally by the agent to model its world. It should be smaller
+		than the observation vector, but big enough to represent the state of the world.
+		The action vector is the output from the agent.
+		The agent returns action vectors to indicate what it wants to do.<br><br>
+
+		To give the agent life, just repeatedly call the "ManicAgent.think" method in a loop.
+		This method expects an observation vector as input, and outputs the action vector that the agent chooses.
+		Each time you call think, the agent will query the teacher to help it compare candidate plans.
+		When the teacher is not available, or wants to see how the agent behaves on its own, she may just return 0,
+		which means "I have no guidance for you at this time--choose for yourself".
+		When the teacher determines the agent is ready to live on its own,
+		she may just always return 0 thereafter.
+		</li><br><br>
+
+	<li>If you want, you can save the agent (including all the state in its artificial brain) to a file:
+<pre class="code">
+JSONObject obj = agent.marshal();
+FileWriter file = new FileWriter("agent.json");
+file.write(obj.toJSONString());
+file.close();
+</pre>
+		And, of course, you can restore it from a file:
+<pre class="code">
+JSONParser parser = new JSONParser();
+JSONObject obj2 = (JSONObject)parser.parse(new FileReader("agent.json"));
+ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyTeacher());
+</pre>
+
+		</li><br><br>
+
+	<li><b>What can this thing do?</b>
+		Well, that hasn't really been determined, yet.
+		That's why we are making this code available to the public.
+		Have fun!
+		</li><br><br>
+
+	<li><b>What is the license of this code?</b>
+		The file Json.java contains code in the Apache 2.0 license.
+		I wrote everything else myself from scratch, and I released it all under a Creative Commons Zero public domain dedication.
+		</li><br><br>
+
+</ol>
+
+
+</td></tr></table>
+</body></html>
+
