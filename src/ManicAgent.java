@@ -30,9 +30,9 @@ class TransitionModel {
 		rand = r;
 		model = new NeuralNet();
 		for(int i = 0; i < total_layers; i++) {
-			int in = ((input_dims * (total_layers - i)) + (output_dims * i)) / (total_layers - 1);
+			int in = ((input_dims * (total_layers - i)) + (output_dims * i)) / (total_layers);
 			int j = i + 1;
-			int out = ((input_dims * (total_layers - j)) + (output_dims * j)) / (total_layers - 1);
+			int out = ((input_dims * (total_layers - j)) + (output_dims * j)) / (total_layers);
 			model.layers.add(new Layer(in, out));
 		}
 		model.init(rand);
@@ -115,7 +115,7 @@ class TransitionModel {
 				double[] prediction = model.forwardProp(validationInput.row(i));
 				double[] targ = validationOutput.row(i);
 				for(int j = 0; j < targ.length; j++)
-					err += (targ[i] - prediction[i]) * (targ[i] - prediction[i]);
+					err += (targ[j] - prediction[j]) * (targ[j] - prediction[j]);
 			}
 			err /= validationSize;
 
@@ -224,9 +224,9 @@ class ObservationModel {
 		rand = r;
 		decoder = new NeuralNet();
 		for(int i = 0; i < decoder_layers; i++) {
-			int in = ((belief_dims * (decoder_layers - i)) + (observation_dims * i)) / (decoder_layers - 1);
+			int in = ((belief_dims * (decoder_layers - i)) + (observation_dims * i)) / (decoder_layers);
 			int j = i + 1;
-			int out = ((belief_dims * (decoder_layers - j)) + (observation_dims * j)) / (decoder_layers - 1);
+			int out = ((belief_dims * (decoder_layers - j)) + (observation_dims * j)) / (decoder_layers);
 			decoder.layers.add(new Layer(in, out));
 		}
 		decoder.init(rand);
@@ -234,9 +234,9 @@ class ObservationModel {
 		// Init the encoder
 		encoder = new NeuralNet();
 		for(int i = 0; i < encoder_layers; i++) {
-			int in = ((observation_dims * (encoder_layers - i)) + (belief_dims * i)) / (encoder_layers - 1);
+			int in = ((observation_dims * (encoder_layers - i)) + (belief_dims * i)) / (encoder_layers);
 			int j = i + 1;
-			int out = ((observation_dims * (encoder_layers - j)) + (belief_dims * j)) / (encoder_layers - 1);
+			int out = ((observation_dims * (encoder_layers - j)) + (belief_dims * j)) / (encoder_layers);
 			encoder.layers.add(new Layer(in, out));
 		}
 		encoder.init(rand);
@@ -324,7 +324,7 @@ class ObservationModel {
 				double[] targ = validation.row(i);
 				double[] pred = decoder.forwardProp(encoder.forwardProp(targ));
 				for(int j = 0; j < targ.length; j++)
-					err += (targ[i] - pred[i]) * (targ[i] - pred[i]);
+					err += (targ[j] - pred[j]) * (targ[j] - pred[j]);
 			}
 			err /= validationSize;
 
@@ -413,9 +413,9 @@ class ContentmentModel {
 		rand = r;
 		model = new NeuralNet();
 		for(int i = 0; i < total_layers; i++) {
-			int in = ((beliefDims * (total_layers - i)) + i) / (total_layers - 1);
+			int in = ((beliefDims * (total_layers - i)) + i) / (total_layers);
 			int j = i + 1;
-			int out = ((beliefDims * (total_layers - j)) + j) / (total_layers - 1);
+			int out = ((beliefDims * (total_layers - j)) + j) / (total_layers);
 			model.layers.add(new Layer(in, out));
 		}
 		model.init(rand);
@@ -765,7 +765,8 @@ class PlanningSystem {
 	/// Drops the first action in every plan
 	void advanceTime() {
 		for(int i = 0; i < plans.size(); i++) {
-			plans.get(i).steps.remove(0);
+			if(plans.get(i).steps.size() > 0)
+				plans.get(i).steps.remove(0);
 		}
 	}
 
@@ -806,9 +807,18 @@ class PlanningSystem {
 		}
 
 		// Copy the first action vector of the best plan
-		double[] bestActions = plans.get(bestPlan).getActions(0);
-		for(int i = 0; i < bestActions.length; i++) {
-			actions[i] = bestActions[i];
+		if(plans.get(bestPlan).size() > 0)
+		{
+			double[] bestActions = plans.get(bestPlan).getActions(0);
+			for(int i = 0; i < bestActions.length; i++) {
+				actions[i] = bestActions[i];
+			}
+		}
+		else
+		{
+			for(int i = 0; i < actions.length; i++) {
+				actions[i] = 0.0;
+			}
 		}
 	}
 }

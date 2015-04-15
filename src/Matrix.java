@@ -55,7 +55,7 @@ public class Matrix
 		m_attr_name = that.m_attr_name;
 		m_str_to_enum = that.m_str_to_enum;
 		m_enum_to_str = that.m_enum_to_str;
-		setSize(that.rows(), that.cols());
+		setSize(0, that.cols());
 		copyPart(that, 0, 0, that.rows(), that.cols());
 	}
 
