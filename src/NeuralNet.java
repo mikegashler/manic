@@ -115,7 +115,7 @@ class Layer {
 
 	void feedForward(double[] in) {
 		if(in.length != weights.rows())
-			throw new IllegalArgumentException("size mismatch");
+			throw new IllegalArgumentException("size mismatch. " + Integer.toString(in.length) + " != " + Integer.toString(weights.rows()));
 		for(int i = 0; i < net.length; i++)
 			net[i] = bias[i];
 		for(int j = 0; j < weights.rows(); j++) {
@@ -129,7 +129,7 @@ class Layer {
 
 	void feedForward2(double[] in1, double[] in2) {
 		if(in1.length + in2.length != weights.rows())
-			throw new IllegalArgumentException("size mismatch");
+			throw new IllegalArgumentException("size mismatch. " + Integer.toString(in1.length) + " + " + Integer.toString(in2.length) + " != " + Integer.toString(weights.rows()));
 		for(int i = 0; i < net.length; i++)
 			net[i] = bias[i];
 		for(int j = 0; j < in1.length; j++) {
@@ -352,7 +352,7 @@ class NeuralNet {
 		Layer l = layers.get(i);
 		l.computeError(target);
 		l.deactivate();
-		for(i--; i > 0; i--) {
+		for(i--; i >= 0; i--) {
 			Layer upstream = layers.get(i);
 			l.feedBack(upstream.error);
 			upstream.deactivate();

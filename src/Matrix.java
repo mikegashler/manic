@@ -232,6 +232,23 @@ public class Matrix
 		}
 	}
 
+	public static void printVec(double[] vec) {
+		System.out.print("[");
+		if(vec.length > 0) {
+			System.out.print(Double.toString(vec[0]));
+			for(int i = 1; i < vec.length; i++) {
+				System.out.print(",	" + Double.toString(vec[i]));
+			}
+		}
+		System.out.println("]");
+	}
+
+	public void print() {
+		for(int j = 0; j < rows(); j++) {
+			printVec(row(j));
+		}
+	}
+
 	/** Saves the matrix to an ARFF file */
 	public void saveARFF(String filename) throws Exception
 	{		
@@ -303,7 +320,7 @@ public class Matrix
 		}
 	}
 
-	/** Makes a rows x columns matrix of *ALL CONTINUOUS VALUES*.
+	/** Makes a rows-by-columns matrix of *ALL CONTINUOUS VALUES*.
 	 *  This method wipes out any data currently in the matrix. It also
 	 *  wipes out any meta-data. */
 	public void setSize(int rows, int cols) throws Exception

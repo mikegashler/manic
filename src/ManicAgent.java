@@ -385,6 +385,18 @@ class ObservationModel {
 		for(int i = 0; i < obs.length; i++) {
 			ret[i] = obs[i];
 		}
+
+		return ret;
+	}
+
+	/// Encodes observations to predict beliefs
+	double[] observationsToBeliefs(double[] observations) {
+		double[] bel = encoder.forwardProp(observations);
+		double[] ret = new double[bel.length];
+		for(int i = 0; i < bel.length; i++) {
+			ret[i] = bel[i];
+		}
+
 		return ret;
 	}
 }
@@ -605,10 +617,20 @@ class PlanningSystem {
 		plans = new ArrayList<Plan>();
 		if(populationSize < 2)
 			throw new IllegalArgumentException("The population size must be at least 2");
-		for(int i = 0; i < populationSize; i++)
-			plans.add(new Plan());
 		actionDims = actionDimensions;
 		maxPlanLength = maxPlanLen;
+		for(int i = 0; i < populationSize; i++) {
+			Plan p = new Plan();
+			for(int j = Math.min(maxPlanLen, rand.nextInt(maxPlanLen) + 2); j > 0; j--) {
+				// Add a random action vector to the end
+				double[] newActions = new double[actionDims];
+				for(int k = 0; k < actionDims; k++) {
+					newActions[k] = rand.nextDouble();
+				}
+				p.steps.add(newActions);
+			}
+			plans.add(p);
+		}
 	}
 
 
@@ -660,7 +682,7 @@ class PlanningSystem {
 			}
 		}
 		else if(d < 0.35) { // shorten the plan
-			if(p.size() > 0) {
+			if(p.size() > 1) {
 				p.steps.remove(rand.nextInt(p.size()));
 			}
 		}
@@ -766,7 +788,17 @@ class PlanningSystem {
 	void advanceTime() {
 		for(int i = 0; i < plans.size(); i++) {
 			if(plans.get(i).steps.size() > 0)
+			{
+				// Remove the first action vector in each plan
 				plans.get(i).steps.remove(0);
+				
+				// Add a random action vector to the end
+				double[] newActions = new double[actionDims];
+				for(int j = 0; j < actionDims; j++) {
+					newActions[j] = rand.nextDouble();
+				}
+				plans.get(i).steps.add(newActions);
+			}
 		}
 	}
 

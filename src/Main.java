@@ -23,6 +23,72 @@ class MyTeacher implements ITeacher {
 }
 
 class Main {
+
+	static void testNeuralNetMath() throws Exception {
+		NeuralNet nn = new NeuralNet();
+		Layer l1 = new Layer(2, 3);
+		l1.weights.row(0)[0] = 0.1;
+		l1.weights.row(0)[1] = 0.0;
+		l1.weights.row(0)[2] = 0.1;
+		l1.weights.row(1)[0] = 0.1;
+		l1.weights.row(1)[1] = 0.0;
+		l1.weights.row(1)[2] = -0.1;
+		l1.bias[0] = 0.1;
+		l1.bias[1] = 0.1;
+		l1.bias[2] = 0.0;
+		nn.layers.add(l1);
+
+		Layer l2 = new Layer(3, 2);
+		l2.weights.row(0)[0] = 0.1;
+		l2.weights.row(0)[1] = 0.1;
+		l2.weights.row(1)[0] = 0.1;
+		l2.weights.row(1)[1] = 0.3;
+		l2.weights.row(2)[0] = 0.1;
+		l2.weights.row(2)[1] = -0.1;
+		l2.bias[0] = 0.1;
+		l2.bias[1] = -0.2;
+		nn.layers.add(l2);
+
+		System.out.println("l1 weights:");
+		l1.weights.print();
+		System.out.println("l1 bias:");
+		Matrix.printVec(l1.bias);
+		System.out.println("l2 weights:");
+		l2.weights.print();
+		System.out.println("l2 bias:");
+		Matrix.printVec(l2.bias);
+
+		System.out.println("----Forward prop");
+		double in[] = new double[2];
+		in[0] = 0.3;
+		in[1] = -0.2;
+		double[] out = nn.forwardProp(in);
+		System.out.println("activation:");
+		Matrix.printVec(out);
+
+		System.out.println("----Back prop");
+		double targ[] = new double[2];
+		targ[0] = 0.1;
+		targ[1] = 0.0;
+		nn.backProp(targ);
+		System.out.println("error 2:");
+		Matrix.printVec(l2.error);
+		System.out.println("error 1:");
+		Matrix.printVec(l1.error);
+		
+		
+		nn.descendGradient(in, 0.1);
+		System.out.println("----Descending gradient");
+		System.out.println("l1 weights:");
+		l1.weights.print();
+		System.out.println("l1 bias:");
+		Matrix.printVec(l1.bias);
+		System.out.println("l2 weights:");
+		l2.weights.print();
+		System.out.println("l2 bias:");
+		Matrix.printVec(l2.bias);
+
+	}
 	public static void testMarshaling() throws Exception {
 		// Make an agent
 		ManicAgent agent = new ManicAgent(new Random(1234), new MyTeacher(), 8, 3, 2);
