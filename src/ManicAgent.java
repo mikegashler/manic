@@ -459,6 +459,7 @@ class ContentmentModel {
 		trainProgress = ((Long)obj.get("trainProgress")).intValue();
 		learningRate = (Double)obj.get("learningRate");
 		prevErr = (Double)obj.get("prevErr");
+		targBuf = new double[1];
 	}
 
 
@@ -571,6 +572,7 @@ class Plan {
 
 	/// Unmarshaling constructor
 	Plan(JSONArray stepsArr) {
+		steps = new ArrayList<double[]>();
 		Iterator<JSONArray> it = stepsArr.iterator();
 		while(it.hasNext()) {
 			steps.add(Layer.unmarshalVector(it.next()));

@@ -87,8 +87,8 @@ class Main {
 		l2.weights.print();
 		System.out.println("l2 bias:");
 		Matrix.printVec(l2.bias);
-
 	}
+
 	public static void testMarshaling() throws Exception {
 		// Make an agent
 		ManicAgent agent = new ManicAgent(new Random(1234), new MyTeacher(), 8, 3, 2);
@@ -165,7 +165,7 @@ class Main {
 	}
 
 	public static void main(String[] args) throws Exception {
-		//testNeuralNet();
+		testNeuralNet();
 		//testMarshaling();
 		System.out.println("Please view getting_started.html in your favorite browser.");
 	}
