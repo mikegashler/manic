@@ -424,10 +424,11 @@ class ContentmentModel {
 		// Init the model
 		rand = r;
 		model = new NeuralNet();
+		int fat_end = Math.min(30, beliefDims * 10);
 		for(int i = 0; i < total_layers; i++) {
-			int in = ((beliefDims * (total_layers - i)) + i) / (total_layers);
+			int in = (i == 0 ? beliefDims : ((fat_end * (total_layers - i)) + i) / (total_layers));
 			int j = i + 1;
-			int out = ((beliefDims * (total_layers - j)) + j) / (total_layers);
+			int out = ((fat_end * (total_layers - j)) + j) / (total_layers);
 			model.layers.add(new Layer(in, out));
 		}
 		model.init(rand);
@@ -488,10 +489,10 @@ class ContentmentModel {
 		double bet = evaluate(better.row(index));
 		double wor = evaluate(worse.row(index));
 		if(wor >= bet) {
-			model.regularize(learningRate, 0.0001);
-			targBuf[0] = wor + 0.02;
+			model.regularize(learningRate, 0.000001);
+			targBuf[0] = wor + 0.05;
 			model.trainIncremental(better.row(index), targBuf, learningRate);
-			targBuf[0] = bet - 0.02;
+			targBuf[0] = bet - 0.05;
 			model.trainIncremental(worse.row(index), targBuf, learningRate);
 		}
 
@@ -528,14 +529,19 @@ class ContentmentModel {
 
 		// Buffer the samples
 		double[] dest = better.row(trainPos);
+		if(bet.length != dest.length)
+			throw new IllegalArgumentException("size mismatch");
 		for(int i = 0; i < bet.length; i++)
 			dest[i] = bet[i];
 		dest = worse.row(trainPos);
+		if(wor.length != dest.length)
+			throw new IllegalArgumentException("size mismatch");
 		for(int i = 0; i < wor.length; i++)
 			dest[i] = wor[i];
-		if(++trainPos >= better.rows())
-			trainPos = 0;
+		trainPos++;
 		trainSize = Math.max(trainSize, trainPos);
+		if(trainPos >= better.rows())
+			trainPos = 0;
 
 		// Do a few iterations of stochastic gradient descent
 		int iters = Math.min(trainIters, trainSize);
