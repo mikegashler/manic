@@ -157,7 +157,7 @@ class Layer {
 
 	void computeError(double[] target) {
 		if(target.length != activation.length)
-			throw new IllegalArgumentException("size mismatch");
+			throw new IllegalArgumentException("size mismatch. " + Integer.toString(target.length) + " != " + Integer.toString(activation.length));
 		for(int i = 0; i < activation.length; i++)
 			error[i] = target[i] - activation[i];
 	}
