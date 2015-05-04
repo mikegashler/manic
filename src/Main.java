@@ -202,15 +202,28 @@ class Main {
 		double[] in = new double[2];
 		double mi = 10000000;
 		double ma = -10000000;
+		double[] min_loc = new double[2];
+		double[] max_loc = new double[2];
 		for(int y = 0; y < 1000; y++) {
 			for(int x = 0; x < 1000; x++) {
 				in[0] = ((double)x) / 1000.0 * 2.0 - 1.0;
 				in[1] = ((double)y) / 1000.0 * 2.0 - 1.0;
 				double out = agent.contentmentModel.evaluate(in);
-				mi = Math.min(mi, out);
-				ma = Math.max(ma, out);
+				if(out < mi) {
+					mi = out;
+					min_loc[0] = in[0];
+					min_loc[1] = in[1];
+				}
+				if(out > ma) {
+					ma = out;
+					max_loc[0] = in[0];
+					max_loc[1] = in[1];
+				}
 			}
 		}
+		System.out.println("Min=" + Double.toString(mi) + ", Max=" + Double.toString(ma));
+		System.out.println("MinLoc=(" + Double.toString(min_loc[0]) + ", " + Double.toString(min_loc[1]) + ")");
+		System.out.println("MaxLoc=(" + Double.toString(max_loc[0]) + ", " + Double.toString(max_loc[1]) + ")");
 		for(int y = 0; y < 1000; y++) {
 			for(int x = 0; x < 1000; x++) {
 				in[0] = ((double)x) / 1000.0 * 2.0 - 1.0;

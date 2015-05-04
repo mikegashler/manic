@@ -415,7 +415,6 @@ class ContentmentModel {
 	int trainIters;
 	int trainProgress;
 	double learningRate;
-	double prevErr;
 	double[] targBuf;
 
 
@@ -459,7 +458,6 @@ class ContentmentModel {
 		trainIters = ((Long)obj.get("trainIters")).intValue();
 		trainProgress = ((Long)obj.get("trainProgress")).intValue();
 		learningRate = (Double)obj.get("learningRate");
-		prevErr = (Double)obj.get("prevErr");
 		targBuf = new double[1];
 	}
 
@@ -476,7 +474,6 @@ class ContentmentModel {
 		obj.put("trainIters", trainIters);
 		obj.put("trainProgress", trainProgress);
 		obj.put("learningRate", learningRate);
-		obj.put("prevErr", prevErr);
 		return obj;
 	}
 
@@ -494,32 +491,6 @@ class ContentmentModel {
 			model.trainIncremental(better.row(index), targBuf, learningRate);
 			targBuf[0] = bet - 0.05;
 			model.trainIncremental(worse.row(index), targBuf, learningRate);
-		}
-
-		// Dynamically tune the learning rate
-		trainProgress++;
-		if(trainProgress >= better.rows()) {
-			// Measure misclassification rate
-			trainProgress = 0;
-			double err = 0.0;
-			for(int i = 0; i < better.rows(); i++) {
-				bet = evaluate(better.row(index));
-				wor = evaluate(worse.row(index));
-				if(wor >= bet)
-					err++;
-			}
-			err /= better.rows();
-
-			// Dynamically tune the learning rate
-			if(err <= prevErr || prevErr == 0) { // If the model improved, or this is the first time...
-				backup.copy(model); // back up the model
-				learningRate = Math.min(0.1, learningRate * 1.2); // gradually increase the learning rate
-			} else {
-				model.copy(backup); // Restore the weights from the backup
-				learningRate = Math.max(1e-6, learningRate * 0.1); // Dramatically decrease the learning rate
-				prevErr *= 1.05; // Gradually raise the former threshold (since the training and validation data are always changing).
-			}
-			prevErr = err;
 		}
 	}
 
