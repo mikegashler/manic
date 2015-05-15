@@ -11,7 +11,7 @@ class Layer {
 	double[] hinge;
 
 
-	Layer(int inputs, int outputs) throws Exception {
+	Layer(int inputs, int outputs) {
 		weights = new Matrix();
 		weights.setSize(inputs, outputs);
 		bias = new double[outputs];
@@ -31,7 +31,7 @@ class Layer {
 	}
 
 
-	Layer(Layer that) throws Exception {
+	Layer(Layer that) {
 		weights = new Matrix(that.weights);
 		bias = copyArray(that.bias);
 		net = copyArray(that.net);
@@ -82,7 +82,7 @@ class Layer {
 	}
 
 
-	void copy(Layer src) throws Exception {
+	void copy(Layer src) {
 		if(src.weights.rows() != weights.rows() || src.weights.cols() != weights.cols())
 			throw new IllegalArgumentException("mismatching sizes");
 		weights.setSize(0, src.weights.cols());
@@ -205,7 +205,7 @@ class Layer {
 		}
 		for(int j = 0; j < weights.rows(); j++) {
 			double[] w = weights.row(j);
-			double x = learningRate * in[j];
+			double x = learningRate * Math.max(-1.0, Math.min(1.0, in[j]));
 			for(int i = 0; i < weights.cols(); i++) {
 				w[i] += x * error[i];
 			}
@@ -266,7 +266,7 @@ class NeuralNet {
 
 
 	/// Copy constructor
-	NeuralNet(NeuralNet that) throws Exception {
+	NeuralNet(NeuralNet that) {
 		layers = new ArrayList<Layer>();
 		for(int i = 0; i < that.layers.size(); i++) {
 			layers.add(new Layer(that.layers.get(i)));
@@ -308,7 +308,7 @@ class NeuralNet {
 
 	/// Copies all the weights and biases from "that" into "this".
 	/// (Assumes the corresponding topologies already match.)
-	void copy(NeuralNet that) throws Exception {
+	void copy(NeuralNet that) {
 		if(layers.size() != that.layers.size())
 			throw new IllegalArgumentException("Unexpected number of layers");
 		for(int i = 0; i < layers.size(); i++) {

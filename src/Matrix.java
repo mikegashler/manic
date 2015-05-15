@@ -40,7 +40,7 @@ public class Matrix
 		this.m_enum_to_str = new ArrayList<Map<Integer, String>>();
 	}
 
-	public Matrix(int rows, int cols) throws Exception
+	public Matrix(int rows, int cols)
 	{
 		this.m_filename    = "";
 		this.m_attr_name   = new ArrayList<String>();
@@ -49,7 +49,7 @@ public class Matrix
 		setSize(rows, cols);
 	}
 
-	public Matrix(Matrix that) throws Exception
+	public Matrix(Matrix that)
 	{
 		m_filename = that.m_filename;
 		m_attr_name = that.m_attr_name;
@@ -232,20 +232,9 @@ public class Matrix
 		}
 	}
 
-	public static void printVec(double[] vec) {
-		System.out.print("[");
-		if(vec.length > 0) {
-			System.out.print(Double.toString(vec[0]));
-			for(int i = 1; i < vec.length; i++) {
-				System.out.print(",	" + Double.toString(vec[i]));
-			}
-		}
-		System.out.println("]");
-	}
-
 	public void print() {
 		for(int j = 0; j < rows(); j++) {
-			printVec(row(j));
+			Vec.print(row(j));
 		}
 	}
 
@@ -323,7 +312,7 @@ public class Matrix
 	/** Makes a rows-by-columns matrix of *ALL CONTINUOUS VALUES*.
 	 *  This method wipes out any data currently in the matrix. It also
 	 *  wipes out any meta-data. */
-	public void setSize(int rows, int cols) throws Exception
+	public void setSize(int rows, int cols)
 	{
 		m_data.clear();
 
@@ -409,18 +398,18 @@ public class Matrix
 	}
 	
 	/** Adds one new row to this matrix. Returns a reference to the new row. */
-	public double[] newRow() throws Exception
+	public double[] newRow()
 	{
 		int c = cols();
 		if (c == 0)
-			throw new Exception("You must add some columns before you add any rows.");
+			throw new IllegalArgumentException("You must add some columns before you add any rows.");
 		double[] newRow = new double[c];
 		m_data.add(newRow);
 		return newRow;
 	}
 	
 	/** Adds 'n' new rows to this matrix */
-	public void newRows(int n) throws Exception
+	public void newRows(int n)
 	{
 		for (int i = 0; i < n; i++)
 			newRow();
@@ -436,11 +425,11 @@ public class Matrix
 	public String attrName(int col) { return m_attr_name.get(col); }
 	
 	/** Returns the name of the specified value */
-	public String attrValue(int attr, int val) throws Exception
+	public String attrValue(int attr, int val)
 	{		
 		String value = m_enum_to_str.get(attr).get(val);
 		if (value == null)
-			throw new Exception("No name.");
+			throw new IllegalArgumentException("No name.");
 		else return value;
 	}
 	
@@ -537,10 +526,10 @@ public class Matrix
 	
 	/** Copies the specified rectangular portion of that matrix, and adds it to the bottom of this matrix.
 	 *  (If colCount does not match the number of columns in this matrix, then this matrix will be cleared first.) */
-	public void copyPart(Matrix that, int rowBegin, int colBegin, int rowCount, int colCount) throws Exception
+	public void copyPart(Matrix that, int rowBegin, int colBegin, int rowCount, int colCount)
 	{
 		if (rowBegin + rowCount > that.rows() || colBegin + colCount > that.cols())
-			throw new Exception("Out of range.");
+			throw new IllegalArgumentException("Out of range.");
 		
 		// Copy the specified region of meta-data
 		if (cols() != colCount)
@@ -571,19 +560,28 @@ public class Matrix
 				list[i] = val;
 		}
 	}
-	
+
+	/** Sets this to the identity matrix. */
+	public void setToIdentity()
+	{
+		setAll(0.0);
+		int m = Math.min(cols(), rows());
+		for(int i = 0; i < m; i++)
+			row(i)[i] = 1.0;
+	}
+
 	/** Throws an exception if that has a different number of columns than
 	 *  this, or if one of its columns has a different number of values. */
-	public void checkCompatibility(Matrix that) throws Exception
+	public void checkCompatibility(Matrix that)
 	{
 		int c = cols();
 		if (that.cols() != c)
-			throw new Exception("Matrices have different number of columns.");
+			throw new IllegalArgumentException("Matrices have different number of columns.");
 		
 		for (int i = 0; i < c; i++)
 		{
 			if (valueCount(i) != that.valueCount(i))
-				throw new Exception("Column " + i + " has mis-matching number of values.");
+				throw new IllegalArgumentException("Column " + i + " has mis-matching number of values.");
 		}
 	}
 }

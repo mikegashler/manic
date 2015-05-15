@@ -8,23 +8,17 @@ import java.util.Iterator;
 class TransitionModel {
 	Random rand;
 	NeuralNet model;
-	NeuralNet backup;
 	Matrix trainInput;
 	Matrix trainOutput;
-	Matrix validationInput;
-	Matrix validationOutput;
 	int trainPos;
 	int trainSize;
-	int validationPos;
-	int validationSize;
 	int trainIters;
-	int trainProgress;
 	double learningRate;
 	double prevErr;
 
 
 	/// General-purpose constructor
-	TransitionModel(int input_dims, int output_dims, int total_layers, int queue_size, int trainItersPerPattern, Random r) throws Exception {
+	TransitionModel(int input_dims, int output_dims, int total_layers, int queue_size, int trainItersPerPattern, Random r) {
 
 		// Init the model
 		rand = r;
@@ -37,14 +31,9 @@ class TransitionModel {
 		}
 		model.init(rand);
 
-		// Make the backup
-		backup = new NeuralNet(model);
-
 		// Init the buffers
 		trainInput = new Matrix(queue_size, input_dims);
 		trainOutput = new Matrix(queue_size, output_dims);
-		validationInput = new Matrix(queue_size, input_dims);
-		validationOutput = new Matrix(queue_size, output_dims);
 
 		// Init the meta-parameters
 		trainIters = trainItersPerPattern;
@@ -56,17 +45,11 @@ class TransitionModel {
 	TransitionModel(JSONObject obj, Random r) {
 		rand = r;
 		model = new NeuralNet((JSONObject)obj.get("model"));
-		backup = new NeuralNet((JSONObject)obj.get("backup"));
 		trainInput = new Matrix((JSONObject)obj.get("trainInput"));
 		trainOutput = new Matrix((JSONObject)obj.get("trainOutput"));
-		validationInput = new Matrix((JSONObject)obj.get("validationInput"));
-		validationOutput = new Matrix((JSONObject)obj.get("validationOutput"));
 		trainPos = ((Long)obj.get("trainPos")).intValue();
 		trainSize = ((Long)obj.get("trainSize")).intValue();
-		validationPos = ((Long)obj.get("validationPos")).intValue();
-		validationSize = ((Long)obj.get("validationSize")).intValue();
 		trainIters = ((Long)obj.get("trainIters")).intValue();
-		trainProgress = ((Long)obj.get("trainProgress")).intValue();
 		learningRate = (Double)obj.get("learningRate");
 		prevErr = (Double)obj.get("prevErr");
 	}
@@ -76,17 +59,11 @@ class TransitionModel {
 	JSONObject marshal() {
 		JSONObject obj = new JSONObject();
 		obj.put("model", model.marshal());
-		obj.put("backup", backup.marshal());
 		obj.put("trainInput", trainInput.marshal());
 		obj.put("trainOutput", trainOutput.marshal());
-		obj.put("validationInput", validationInput.marshal());
-		obj.put("validationOutput", validationOutput.marshal());
 		obj.put("trainPos", trainPos);
 		obj.put("trainSize", trainSize);
-		obj.put("validationPos", validationPos);
-		obj.put("validationSize", validationSize);
 		obj.put("trainIters", trainIters);
-		obj.put("trainProgress", trainProgress);
 		obj.put("learningRate", learningRate);
 		obj.put("prevErr", prevErr);
 		return obj;
@@ -98,60 +75,24 @@ class TransitionModel {
 
 
 	/// Performs one pattern-presentation of stochastic gradient descent, and dynamically tunes the learning rate
-	void doSomeTraining() throws Exception {
+	void doSomeTraining() {
 
 		// Present one pattern
 		model.regularize(learningRate, 0.0001);
 		int index = rand.nextInt(trainSize);
 		model.trainIncremental(trainInput.row(index), trainOutput.row(index), learningRate);
-
-		// Dynamically tune the learning rate (at periodic intervals)
-		trainProgress++;
-		if(trainProgress >= trainInput.rows()) {
-			// Measure mean squared error
-			trainProgress = 0;
-			double err = 0.0;
-			for(int i = 0; i < validationSize; i++) {
-				double[] prediction = model.forwardProp(validationInput.row(i));
-				double[] targ = validationOutput.row(i);
-				for(int j = 0; j < targ.length; j++)
-					err += (targ[j] - prediction[j]) * (targ[j] - prediction[j]);
-			}
-			err /= validationSize;
-
-			// Dynamically tune the learning rate
-			if(err <= prevErr || prevErr == 0) { // If the model improved, or this is the first time...
-				backup.copy(model); // back up the model
-				learningRate = Math.min(0.1, learningRate * 1.2); // gradually increase the learning rate
-			} else {
-				model.copy(backup); // Restore the weights from the backup
-				learningRate = Math.max(1e-6, learningRate * 0.1); // Dramatically decrease the learning rate
-				prevErr *= 1.05; // Gradually raise the former threshold (since the training and validation data are always changing).
-			}
-			prevErr = err;
-		}
 	}
 
 
 	/// Refines this model based on a recently performed action and change in beliefs
-	void trainIncremental(double[] beliefs, double[] actions, double[] nextBeliefs) throws Exception {
+	void trainIncremental(double[] beliefs, double[] actions, double[] nextBeliefs) {
 
 		// Buffer the pattern
-		double[] destIn;
-		double[] destOut;
-		if(validationPos < trainPos) {
-			destIn = validationInput.row(validationPos);
-			destOut = validationOutput.row(validationPos);
-			if(++validationPos >= validationInput.rows())
-				validationPos = 0;
-			validationSize = Math.max(validationSize, validationPos);
-		} else {
-			destIn = trainInput.row(trainPos);
-			destOut = trainOutput.row(trainPos);
-			if(++trainPos >= trainInput.rows())
-				trainPos = 0;
-			trainSize = Math.max(trainSize, trainPos);
-		}
+		double[] destIn = trainInput.row(trainPos);
+		double[] destOut = trainOutput.row(trainPos);
+		if(++trainPos >= trainInput.rows())
+			trainPos = 0;
+		trainSize = Math.max(trainSize, trainPos);
 		if(beliefs.length + actions.length != destIn.length)
 			throw new IllegalArgumentException("size mismatch");
 		for(int i = 0; i < beliefs.length; i++)
@@ -203,8 +144,8 @@ class ObservationModel {
 	Random rand;
 	NeuralNet decoder;
 	NeuralNet encoder;
-	NeuralNet decoderBackup;
-	NeuralNet encoderBackup;
+	NeuralNet decoderExperimental;
+	NeuralNet encoderExperimental;
 	Matrix train;
 	Matrix validation;
 	int trainPos;
@@ -215,11 +156,10 @@ class ObservationModel {
 	int trainProgress;
 	int calibrationIters;
 	double learningRate;
-	double prevErr;
 
 
 	/// General-purpose constructor
-	ObservationModel(int observation_dims, int belief_dims, int decoder_layers, int encoder_layers, int queue_size, int trainItersPerPattern, int calibrationIterations, Random r) throws Exception {
+	ObservationModel(int observation_dims, int belief_dims, int decoder_layers, int encoder_layers, int queue_size, int trainItersPerPattern, int calibrationIterations, Random r) {
 		// Init the decoder
 		rand = r;
 		decoder = new NeuralNet();
@@ -227,7 +167,8 @@ class ObservationModel {
 			int in = ((belief_dims * (decoder_layers - i)) + (observation_dims * i)) / (decoder_layers);
 			int j = i + 1;
 			int out = ((belief_dims * (decoder_layers - j)) + (observation_dims * j)) / (decoder_layers);
-			decoder.layers.add(new Layer(in, out));
+			Layer l = new Layer(in, out);
+			decoder.layers.add(l);
 		}
 		decoder.init(rand);
 
@@ -237,13 +178,14 @@ class ObservationModel {
 			int in = ((observation_dims * (encoder_layers - i)) + (belief_dims * i)) / (encoder_layers);
 			int j = i + 1;
 			int out = ((observation_dims * (encoder_layers - j)) + (belief_dims * j)) / (encoder_layers);
-			encoder.layers.add(new Layer(in, out));
+			Layer l = new Layer(in, out);
+			encoder.layers.add(l);
 		}
 		encoder.init(rand);
 
-		// Make the backups
-		decoderBackup = new NeuralNet(decoder);
-		encoderBackup = new NeuralNet(encoder);
+		// Make the experimental nets
+		decoderExperimental = new NeuralNet(decoder);
+		encoderExperimental = new NeuralNet(encoder);
 
 		// Init the buffers
 		train = new Matrix(queue_size, observation_dims);
@@ -261,8 +203,8 @@ class ObservationModel {
 		rand = r;
 		decoder = new NeuralNet((JSONObject)obj.get("decoder"));
 		encoder = new NeuralNet((JSONObject)obj.get("encoder"));
-		decoderBackup = new NeuralNet((JSONObject)obj.get("decoderBackup"));
-		encoderBackup = new NeuralNet((JSONObject)obj.get("encoderBackup"));
+		decoderExperimental = new NeuralNet((JSONObject)obj.get("decoderExperimental"));
+		encoderExperimental = new NeuralNet((JSONObject)obj.get("encoderExperimental"));
 		train = new Matrix((JSONObject)obj.get("train"));
 		validation = new Matrix((JSONObject)obj.get("validation"));
 		trainPos = ((Long)obj.get("trainPos")).intValue();
@@ -273,7 +215,6 @@ class ObservationModel {
 		trainProgress = ((Long)obj.get("trainProgress")).intValue();
 		calibrationIters = ((Long)obj.get("calibrationIters")).intValue();
 		learningRate = (Double)obj.get("learningRate");
-		prevErr = (Double)obj.get("prevErr");
 	}
 
 
@@ -282,8 +223,8 @@ class ObservationModel {
 		JSONObject obj = new JSONObject();
 		obj.put("decoder", decoder.marshal());
 		obj.put("encoder", encoder.marshal());
-		obj.put("decoderBackup", decoderBackup.marshal());
-		obj.put("encoderBackup", encoderBackup.marshal());
+		obj.put("decoderExperimental", decoderExperimental.marshal());
+		obj.put("encoderExperimental", encoderExperimental.marshal());
 		obj.put("train", train.marshal());
 		obj.put("validation", validation.marshal());
 		obj.put("trainPos", trainPos);
@@ -294,58 +235,60 @@ class ObservationModel {
 		obj.put("trainProgress", trainProgress);
 		obj.put("calibrationIters", calibrationIters);
 		obj.put("learningRate", learningRate);
-		obj.put("prevErr", prevErr);
 		return obj;
 	}
 
 
 	/// Performs one pattern-presentation of stochastic gradient descent and dynamically tunes the learning rate
-	void doSomeTraining() throws Exception {
+	void doSomeTraining() {
 
-		// Train the decoder and encoder together as an autoencoder
-		decoder.regularize(learningRate, 0.0001);
-		encoder.regularize(learningRate, 0.0001);
+		// Train the decoderExperimental and encoderExperimental together as an autoencoder
+		decoderExperimental.regularize(learningRate, 0.0001);
+		encoderExperimental.regularize(learningRate, 0.0001);
 		int index = rand.nextInt(trainSize);
 		double[] observation = train.row(index);
-		double[] belief = encoder.forwardProp(observation);
-		double[] prediction = decoder.forwardProp(belief);
-		decoder.backPropAndBendHinge(observation, learningRate);
-		encoder.backPropFromDecoder(decoder, learningRate);
-		encoder.descendGradient(observation, learningRate);
-		decoder.descendGradient(belief, learningRate);
+		double[] belief = encoderExperimental.forwardProp(observation);
+		double[] prediction = decoderExperimental.forwardProp(belief);
+		decoderExperimental.backPropAndBendHinge(observation, learningRate);
+		encoderExperimental.backPropFromDecoder(decoder, learningRate);
+		encoderExperimental.descendGradient(observation, learningRate);
+		decoderExperimental.descendGradient(belief, learningRate);
 
-		// Dynamically tune the learning rate at periodic intervals
+		// Since changing how we perceive the world can throw off all the other models,
+		// we only want to change our perception when it will lead to big improvements.
+		// Here, we test whether our experimental model is significantly better than the one we have been using.
+		// If so, then the experimental model becomes the new model.
 		trainProgress++;
 		if(trainProgress >= train.rows()) {
 			// Measure mean squared error
 			trainProgress = 0;
-			double err = 0.0;
+			double err1 = 0.0;
+			double err2 = 0.0;
 			for(int i = 0; i < validationSize; i++) {
 				double[] targ = validation.row(i);
-				double[] pred = decoder.forwardProp(encoder.forwardProp(targ));
-				for(int j = 0; j < targ.length; j++)
-					err += (targ[j] - pred[j]) * (targ[j] - pred[j]);
+				double[] pred1 = decoder.forwardProp(encoder.forwardProp(targ));
+				double[] pred2 = decoderExperimental.forwardProp(encoderExperimental.forwardProp(targ));
+				for(int j = 0; j < targ.length; j++) {
+					err1 += (targ[j] - pred1[j]) * (targ[j] - pred1[j]);
+					err2 += (targ[j] - pred2[j]) * (targ[j] - pred2[j]);
+				}
 			}
-			err /= validationSize;
-
-			// Dynamically tune the learning rate
-			if(err <= prevErr || prevErr == 0) { // If the model improved, or this is the first time...
-				encoderBackup.copy(encoder); // back up the encoder
-				decoderBackup.copy(decoder); // back up the decoder
-				learningRate = Math.min(0.1, learningRate * 1.2); // gradually increase the learning rate
-			} else {
-				encoder.copy(encoderBackup); // Restore the encoder from the backup
-				decoder.copy(decoderBackup); // Restore the decoder from the backup
-				learningRate = Math.max(1e-6, learningRate * 0.1); // Dramatically decrease the learning rate
-				prevErr *= 1.05; // Gradually raise the former threshold (since the training and validation data are always changing).
+			err1 = Math.sqrt(err1 / validationSize);
+			err2 = Math.sqrt(err2 / validationSize);
+			if(err2 < 0.85 * err1) {
+				encoder.copy(encoderExperimental);
+				decoder.copy(decoderExperimental);
 			}
-			prevErr = err;
+			else if(err1 < 0.85 * err2) {
+				encoderExperimental.copy(encoder);
+				decoderExperimental.copy(decoder);
+			}
 		}
 	}
 
 
 	/// Refines the encoder and decoder based on the new observation.
-	void trainIncremental(double[] observation) throws Exception {
+	void trainIncremental(double[] observation) {
 
 		// Buffer the pattern
 		double[] dest;
@@ -374,6 +317,8 @@ class ObservationModel {
 	void calibrateBeliefs(double[] beliefs, double[] observations) {
 		for(int i = 0; i < calibrationIters; i++) {
 			decoder.refineInputs(beliefs, observations, learningRate);
+			for(int j = 0; j < beliefs.length; j++)
+				beliefs[j] = Math.max(-1.0, Math.min(1.0, beliefs[j]));
 		}
 	}
 
@@ -388,6 +333,7 @@ class ObservationModel {
 
 		return ret;
 	}
+
 
 	/// Encodes observations to predict beliefs
 	double[] observationsToBeliefs(double[] observations) {
@@ -407,19 +353,18 @@ class ObservationModel {
 class ContentmentModel {
 	Random rand;
 	NeuralNet model;
-	NeuralNet backup;
 	Matrix better;
 	Matrix worse;
 	int trainPos;
 	int trainSize;
 	int trainIters;
-	int trainProgress;
 	double learningRate;
 	double[] targBuf;
 
 
 	// General-purpose constructor
-	ContentmentModel(int beliefDims, int total_layers, int queue_size, int trainItersPerPattern, Random r) throws Exception {
+	ContentmentModel(int beliefDims, int total_layers, int queue_size, int trainItersPerPattern, Random r) {
+
 		// Init the model
 		rand = r;
 		model = new NeuralNet();
@@ -431,9 +376,6 @@ class ContentmentModel {
 			model.layers.add(new Layer(in, out));
 		}
 		model.init(rand);
-
-		// Make the backup
-		backup = new NeuralNet(model);
 
 		// Init the buffers
 		better = new Matrix(queue_size, beliefDims);
@@ -450,13 +392,11 @@ class ContentmentModel {
 	ContentmentModel(JSONObject obj, Random r) {
 		rand = r;
 		model = new NeuralNet((JSONObject)obj.get("model"));
-		backup = new NeuralNet((JSONObject)obj.get("backup"));
 		better = new Matrix((JSONObject)obj.get("better"));
 		worse = new Matrix((JSONObject)obj.get("worse"));
 		trainPos = ((Long)obj.get("trainPos")).intValue();
 		trainSize = ((Long)obj.get("trainSize")).intValue();
 		trainIters = ((Long)obj.get("trainIters")).intValue();
-		trainProgress = ((Long)obj.get("trainProgress")).intValue();
 		learningRate = (Double)obj.get("learningRate");
 		targBuf = new double[1];
 	}
@@ -466,20 +406,18 @@ class ContentmentModel {
 	JSONObject marshal() {
 		JSONObject obj = new JSONObject();
 		obj.put("model", model.marshal());
-		obj.put("backup", backup.marshal());
 		obj.put("better", better.marshal());
 		obj.put("worse", worse.marshal());
 		obj.put("trainPos", trainPos);
 		obj.put("trainSize", trainSize);
 		obj.put("trainIters", trainIters);
-		obj.put("trainProgress", trainProgress);
 		obj.put("learningRate", learningRate);
 		return obj;
 	}
 
 
 	/// Performs one pattern-presentation of stochastic gradient descent, and dynamically tunes the learning rate
-	void doSomeTraining() throws Exception {
+	void doSomeTraining() {
 
 		// Present a single pair for rank-based training
 		int index = rand.nextInt(trainSize);
@@ -496,7 +434,7 @@ class ContentmentModel {
 
 
 	/// Refines this model based on feedback from the teacher
-	void trainIncremental(double[] bet, double[] wor) throws Exception {
+	void trainIncremental(double[] bet, double[] wor) {
 
 		// Buffer the samples
 		double[] dest = better.row(trainPos);
@@ -570,6 +508,22 @@ class Plan {
 
 	/// Returns the ith action vector in this plan
 	double[] getActions(int i) { return steps.get(i); }
+
+	/// Prints a representation of the plan to stdout
+	void print() {
+		System.out.print("[");
+		for(int i = 0; i < steps.size(); i++) {
+			double[] actions = steps.get(i);
+			System.out.print("(");
+			for(int j = 0; j < actions.length; j++) {
+				if(j > 0)
+					System.out.print(",");
+				System.out.print(Double.toString(actions[j]));
+			}
+			System.out.print(")");
+		}
+		System.out.println("]");
+	}
 }
 
 
@@ -583,11 +537,12 @@ class PlanningSystem {
 	int maxPlanLength;
 	int refinementIters;
 	int actionDims;
+	double discountFactor;
 	Random rand;
 
 
 	// General-purpose constructor
-	PlanningSystem(TransitionModel transition, ObservationModel observation, ContentmentModel contentment, ITeacher oracle, int actionDimensions, int populationSize, int planRefinementIters, int maxPlanLen, Random r) {
+	PlanningSystem(TransitionModel transition, ObservationModel observation, ContentmentModel contentment, ITeacher oracle, int actionDimensions, int populationSize, int planRefinementIters, int maxPlanLen, double discount, Random r) {
 		transitionModel = transition;
 		observationModel = observation;
 		contentmentModel = contentment;
@@ -627,6 +582,7 @@ class PlanningSystem {
 			plans.add(new Plan(it.next()));
 		}
 		maxPlanLength = ((Long)obj.get("maxPlanLength")).intValue();
+		discountFactor = ((Double)obj.get("discount")).doubleValue();
 		refinementIters = ((Long)obj.get("refinementIters")).intValue();
 		actionDims = ((Long)obj.get("actionDims")).intValue();
 	}
@@ -641,9 +597,23 @@ class PlanningSystem {
 		}
 		obj.put("plans", plansArr);
 		obj.put("maxPlanLength", maxPlanLength);
+		obj.put("discount", discountFactor);
 		obj.put("refinementIters", refinementIters);
 		obj.put("actionDims", actionDims);
 		return obj;
+	}
+
+
+	/// Replaces the teacher with the specified one
+	void setTeacher(ITeacher oracle) {
+		teacher = oracle;
+	}
+
+
+	/// Prints a representation of all the plans to stdout
+	void printPlans() {
+		for(int i = 0; i < plans.size(); i++)
+			plans.get(i).print();
 	}
 
 
@@ -651,7 +621,7 @@ class PlanningSystem {
 	void mutate() {
 		double d = rand.nextDouble();
 		Plan p = plans.get(rand.nextInt(plans.size()));
-		if(d < 0.2 || p.size() == 0) { // lengthen the plan
+		if(d < 0.2) { // lengthen the plan
 			if(p.size() < maxPlanLength) {
 				double[] newActions = new double[actionDims];
 				for(int i = 0; i < actionDims; i++) {
@@ -666,11 +636,9 @@ class PlanningSystem {
 			}
 		}
 		else if(d < 0.5) { // perturb a whole action vector
-			if(p.size() > 0) {
-				double[] actions = p.getActions(rand.nextInt(p.size()));
-				for(int i = 0; i < actions.length; i++) {
-					actions[i] = Math.max(0.0, Math.min(1.0, actions[i] + 0.1 * rand.nextGaussian()));
-				}
+			double[] actions = p.getActions(rand.nextInt(p.size()));
+			for(int i = 0; i < actions.length; i++) {
+				actions[i] = Math.max(0.0, Math.min(1.0, actions[i] + 0.1 * rand.nextGaussian()));
 			}
 		}
 		else if(d < 0.6) { // perturb the whole plan
@@ -682,11 +650,9 @@ class PlanningSystem {
 			}
 		}
 		else { // perturb a single element of an action vector
-			if(p.size() > 0) {
-				double[] actions = p.getActions(rand.nextInt(p.size()));
-				int i = rand.nextInt(actions.length);
-					actions[i] = Math.max(0.0, Math.min(1.0, actions[i] + 0.1 * rand.nextGaussian()));
-			}
+			double[] actions = p.getActions(rand.nextInt(p.size()));
+			int i = rand.nextInt(actions.length);
+				actions[i] = Math.max(0.0, Math.min(1.0, actions[i] + 0.1 * rand.nextGaussian()));
 		}
 	}
 
@@ -694,10 +660,10 @@ class PlanningSystem {
 	/// Replaces the specified plan with a new one.
 	void replace(int childIndex) {
 		double d = rand.nextDouble();
-		if(d < 0.6) {
+		if(d < 0.2) {
 			// Clone a random parent (asexual reproduction)
 			plans.set(childIndex, new Plan(plans.get(rand.nextInt(plans.size()))));
-		} else if(d < 0.8) {
+		} else if(d < 0.7) {
 			// Cross-over (sexual reproduction)
 			Plan mother = plans.get(rand.nextInt(plans.size()));
 			Plan father = plans.get(rand.nextInt(plans.size()));
@@ -720,7 +686,7 @@ class PlanningSystem {
 				double[] b = father.getActions(i);
 				double[] c = new double[a.length];
 				for(int j = 0; j < c.length; j++) {
-					c[j] = alpha * a[j] + (1.0 - alpha) * b[j];
+					c[j] = Math.max(0.0, Math.min(1.0, alpha * a[j] + (1.0 - alpha) * b[j]));
 				}
 				child.steps.add(c);
 			}
@@ -731,7 +697,7 @@ class PlanningSystem {
 
 	/// Returns the expected contentment at the end of the plan
 	double evaluatePlan(double[] beliefs, Plan plan) {
-		return contentmentModel.evaluate(transitionModel.getFinalBeliefs(beliefs, plan));
+		return contentmentModel.evaluate(transitionModel.getFinalBeliefs(beliefs, plan)) * Math.pow(discountFactor, plan.steps.size());
 	}
 
 
@@ -742,16 +708,21 @@ class PlanningSystem {
 		int b = rand.nextInt(plans.size());
 		boolean a_prevails;
 		if(rand.nextDouble() < 0.35)
-			a_prevails = true;
-		else if(evaluatePlan(beliefs, plans.get(a)) >= evaluatePlan(beliefs, plans.get(b)))
-			a_prevails = true;
-		else
-			a_prevails = false;
+			a_prevails = true; // A random plan prevails
+		else {
+			// The better plan prevails
+			double fitnessA = evaluatePlan(beliefs, plans.get(a));
+			double fitnessB = evaluatePlan(beliefs, plans.get(b));
+			if(fitnessA >= fitnessB)
+				a_prevails = true;
+			else
+				a_prevails = false;
+		}
 		replace(a_prevails ? b : a);
 	}
 
 
-	/// Performs one iteration of plan refinement
+	/// Performs several iterations of plan refinement
 	void refinePlans(double[] beliefs) {
 		for(int i = 0; i < refinementIters; i++) {
 			double d = rand.nextDouble();
@@ -783,7 +754,7 @@ class PlanningSystem {
 
 
 	/// Finds the best plan and copies its first step
-	void chooseNextActions(double[] beliefs, double[] actions) throws Exception {
+	void chooseNextActions(double[] beliefs, double[] actions) {
 
 		// Evaluate all the plans
 		int bestPlan = 0;
@@ -837,17 +808,6 @@ class PlanningSystem {
 
 /// Implements a weak artificial general intelligence.
 public class ManicAgent {
-	static final int CALIBRATION_ITERS = 6;
-	static final int DECODER_LAYERS = 2;
-	static final int ENCODER_LAYERS = 2;
-	static final int TRANSITION_LAYERS = 2;
-	static final int CONTENTMENT_LAYERS = 2;
-	static final int SHORT_TERM_MEMORY_SIZE = 500;
-	static final int TRAIN_ITERS_PER_PATTERN = 50;
-	static final int PLANNING_POPULATION_SIZE = 100;
-	static final int PLAN_REFINEMENT_ITERS = 500;
-	static final int MAX_PLAN_LENGTH = 10;
-
 	Random rand;
 	TransitionModel transitionModel;
 	ObservationModel observationModel;
@@ -860,12 +820,45 @@ public class ManicAgent {
 
 	// Constructor.
 	// r is a random number generator.
-	ManicAgent(Random r, ITeacher oracle, int observationDims, int beliefDims, int actionDims) throws Exception {
+	// observationDims is the number of double values that the agent observes each time step. (They should fall within a range near [-1, 1] or [0, 1].)
+	// beliefDims is the number of double values that the agent uses internally to model the state of the world. (It should generally be <= observationDims.)
+	// actionDims is the number of double values the agent uses to specify an action. (The values will range from 0 to 1.)
+	// maxPlanLength specifies the maximum number of time-steps into the future that the agent will attempt to plan.
+	ManicAgent(Random r, ITeacher oracle, int observationDims, int beliefDims, int actionDims, int maxPlanLength) {
 		rand = r;
-		transitionModel = new TransitionModel(actionDims + beliefDims, beliefDims, TRANSITION_LAYERS, SHORT_TERM_MEMORY_SIZE, TRAIN_ITERS_PER_PATTERN, rand);
-		observationModel = new ObservationModel(observationDims, beliefDims, DECODER_LAYERS, ENCODER_LAYERS, SHORT_TERM_MEMORY_SIZE, TRAIN_ITERS_PER_PATTERN, CALIBRATION_ITERS, rand);
-		contentmentModel = new ContentmentModel(beliefDims, CONTENTMENT_LAYERS, SHORT_TERM_MEMORY_SIZE, TRAIN_ITERS_PER_PATTERN, rand);
-		planningSystem = new PlanningSystem(transitionModel, observationModel, contentmentModel, oracle, actionDims, PLANNING_POPULATION_SIZE, PLAN_REFINEMENT_ITERS, MAX_PLAN_LENGTH, rand);
+		transitionModel = new TransitionModel(
+			actionDims + beliefDims,
+			beliefDims,
+			2, // number of layers in the transition model
+			500, // size of short term memory for transitions
+			50, // number of training iterations to perform with each new sample
+			rand);
+		observationModel = new ObservationModel(
+			observationDims,
+			beliefDims,
+			2, // number of layers in the decoder
+			2, // number of layers in the encoder
+			500, // size of short term memory for observations
+			50, // number of training iterations to perform with each new sample
+			60, // number of iterations to calibrate beliefs to correspond with observations
+			rand);
+		contentmentModel = new ContentmentModel(
+			beliefDims,
+			2, // number of layers in the contentment model
+			500, // size of short term memory for feedback from the teacher
+			50, // number of training iterations to perform with each new sample
+			rand);
+		planningSystem = new PlanningSystem(
+			transitionModel,
+			observationModel,
+			contentmentModel,
+			oracle,
+			actionDims,
+			30, // population size
+			20, // number of iterations to refine each member of the population per time step
+			maxPlanLength,
+			0.98, // discount factor (to make short plans be preferred over long plans that ultimately arrive at nearly the same state)
+			rand);
 		actions = new double[actionDims];
 		beliefs = new double[beliefDims];
 		anticipatedBeliefs = new double[beliefDims];
@@ -897,8 +890,14 @@ public class ManicAgent {
 	}
 
 
+	/// Replaces the teacher with the specified one
+	void setTeacher(ITeacher oracle) {
+		planningSystem.setTeacher(oracle);
+	}
+
+
 	/// Learns from observations
-	void learnFromExperience(double[] observations) throws Exception {
+	void learnFromExperience(double[] observations) {
 
 		// Learn to perceive the world a little better
 		observationModel.trainIncremental(observations);
@@ -912,7 +911,7 @@ public class ManicAgent {
 
 
 	/// Returns an action vector
-	double[] decideWhatToDo() throws Exception {
+	double[] decideWhatToDo() {
 
 		// Make the anticipated beliefs the new beliefs
 		double[] tmp = beliefs;
@@ -922,10 +921,10 @@ public class ManicAgent {
 		// Drop the first action in every plan
 		planningSystem.advanceTime();
 
-		// Try to find a better plan
+		// Try to make the plans better
 		planningSystem.refinePlans(beliefs);
 
-		// Choose an action that is expected to maximize contentment
+		// Choose an action that is expected to maximize contentment (with the assistance of the teacher, if available)
 		planningSystem.chooseNextActions(beliefs, actions);
 
 		// Anticipate how the world will change with time
@@ -938,7 +937,7 @@ public class ManicAgent {
 
 	/// A vector of observations goes in
 	/// A vector of chosen actions comes out
-	double[] think(double[] observations) throws Exception {
+	double[] think(double[] observations) {
 
 		learnFromExperience(observations);
 		return decideWhatToDo();

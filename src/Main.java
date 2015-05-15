@@ -52,11 +52,11 @@ class Main {
 		System.out.println("l1 weights:");
 		l1.weights.print();
 		System.out.println("l1 bias:");
-		Matrix.printVec(l1.bias);
+		Vec.print(l1.bias);
 		System.out.println("l2 weights:");
 		l2.weights.print();
 		System.out.println("l2 bias:");
-		Matrix.printVec(l2.bias);
+		Vec.print(l2.bias);
 
 		System.out.println("----Forward prop");
 		double in[] = new double[2];
@@ -64,7 +64,7 @@ class Main {
 		in[1] = -0.2;
 		double[] out = nn.forwardProp(in);
 		System.out.println("activation:");
-		Matrix.printVec(out);
+		Vec.print(out);
 
 		System.out.println("----Back prop");
 		double targ[] = new double[2];
@@ -72,9 +72,9 @@ class Main {
 		targ[1] = 0.0;
 		nn.backProp(targ);
 		System.out.println("error 2:");
-		Matrix.printVec(l2.error);
+		Vec.print(l2.error);
 		System.out.println("error 1:");
-		Matrix.printVec(l1.error);
+		Vec.print(l1.error);
 		
 		
 		nn.descendGradient(in, 0.1);
@@ -82,11 +82,11 @@ class Main {
 		System.out.println("l1 weights:");
 		l1.weights.print();
 		System.out.println("l1 bias:");
-		Matrix.printVec(l1.bias);
+		Vec.print(l1.bias);
 		System.out.println("l2 weights:");
 		l2.weights.print();
 		System.out.println("l2 bias:");
-		Matrix.printVec(l2.bias);
+		Vec.print(l2.bias);
 
 		if(Math.abs(l1.weights.row(0)[0] - 0.10039573704287) > 0.0000000001)
 			throw new IllegalArgumentException("failed");
@@ -99,7 +99,13 @@ class Main {
 
 	public static void testMarshaling() throws Exception {
 		// Make an agent
-		ManicAgent agent = new ManicAgent(new Random(1234), new MyTeacher(), 8, 3, 2);
+		ManicAgent agent = new ManicAgent(
+			new Random(1234),
+			new MyTeacher(),
+			8, // observation dims
+			3, // belief dims
+			2, // action dims
+			10); // max plan length
 
 		// Write it to a file
 		JSONObject obj = agent.marshal();
@@ -175,7 +181,12 @@ class Main {
 	static void testContentmentFunction() throws Exception {
 		System.out.println("training...");
 		Random r = new Random(1234);
-		ManicAgent agent = new ManicAgent(r, new MyTeacher(), 2, 2, 2);
+		ManicAgent agent = new ManicAgent(
+			r, new MyTeacher(), // This teacher prefers plans that lead closer to the origin
+			2, // The agent observes its x,y position (which is the complete state of this world)
+			2, // the agent models state with 2 dimensions because it cannot be simplified further
+			1, // The agent chooses a direction for travel
+			10); // The agent plans up to 10 time-steps into the future
 		double[] bet = new double[2];
 		double[] wor = new double[2];
 		for(int i = 0; i < 10000; i++) {
@@ -246,9 +257,16 @@ class Main {
 		obs[0] = obs[1] * obs[1] + obs[2] * obs[2] + obs[3] * obs[3] + obs[4] * obs[4];
 	}
 
+
+	// This tests whether the agent can be taught to stay near the origin while virtual wind blows it in random directions
 	public static void testIntegration() throws Exception {
 		Random r = new Random(1234);
-		ManicAgent ma = new ManicAgent(r, new MyTeacher(), 5, 4, 5);
+		ManicAgent ma = new ManicAgent(
+			r, new MyTeacher(), // This teacher prefers plans that lead closer to the origin
+			2, // The agent observes its x,y position (which is the complete state of this world)
+			2, // the agent models state with 2 dimensions because it cannot be simplified further
+			1, // The agent chooses a direction for travel
+			10); // The agent plans up to 10 time-steps into the future
 
 		double[] obs = new double[5];
 		for(int j = 0; j < 1000; j++) {
@@ -320,9 +338,7 @@ class Main {
 				obs[index] += act[0];
 				obs[0] = obs[1] * obs[1] + obs[2] * obs[2] + obs[3] * obs[3] + obs[4] * obs[4];
 			}
-
 		}
-
 	}
 
 
