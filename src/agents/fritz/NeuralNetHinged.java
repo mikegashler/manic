@@ -2,7 +2,7 @@ import java.util.Random;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-class Layer {
+class LayerHinged {
 	Matrix weights; // rows are inputs, cols are outputs
 	double[] bias;
 	double[] net;
@@ -11,7 +11,7 @@ class Layer {
 	double[] hinge;
 
 
-	Layer(int inputs, int outputs) {
+	LayerHinged(int inputs, int outputs) {
 		weights = new Matrix();
 		weights.setSize(inputs, outputs);
 		bias = new double[outputs];
@@ -31,7 +31,7 @@ class Layer {
 	}
 
 
-	Layer(Layer that) {
+	LayerHinged(LayerHinged that) {
 		weights = new Matrix(that.weights);
 		bias = copyArray(that.bias);
 		net = copyArray(that.net);
@@ -41,7 +41,7 @@ class Layer {
 	}
 
 
-	Layer(JSONObject obj) {
+	LayerHinged(JSONObject obj) {
 		weights = new Matrix((JSONObject)obj.get("weights"));
 		bias = unmarshalVector((JSONArray)obj.get("bias"));
 		net = new double[weights.cols()];
@@ -82,7 +82,7 @@ class Layer {
 	}
 
 
-	void copy(Layer src) {
+	void copy(LayerHinged src) {
 		if(src.weights.rows() != weights.rows() || src.weights.cols() != weights.cols())
 			throw new IllegalArgumentException("mismatching sizes");
 		weights.setSize(0, src.weights.cols());
@@ -158,8 +158,11 @@ class Layer {
 	void computeError(double[] target) {
 		if(target.length != activation.length)
 			throw new IllegalArgumentException("size mismatch. " + Integer.toString(target.length) + " != " + Integer.toString(activation.length));
-		for(int i = 0; i < activation.length; i++)
+		for(int i = 0; i < activation.length; i++) {
+			//if(target[i] < -1.0 || target[i] > 1.0)
+			//	throw new IllegalArgumentException("target value out of range for the tanh activation function");
 			error[i] = target[i] - activation[i];
+		}
 	}
 
 
@@ -255,33 +258,33 @@ class Layer {
 }
 
 
-class NeuralNet {
-	ArrayList<Layer> layers;
+class NeuralNetHinged {
+	ArrayList<LayerHinged> layers;
 
 
 	/// General-purpose constructor. (Starts with no layers. You must add at least one.)
-	NeuralNet() {
-		layers = new ArrayList<Layer>();
+	NeuralNetHinged() {
+		layers = new ArrayList<LayerHinged>();
 	}
 
 
 	/// Copy constructor
-	NeuralNet(NeuralNet that) {
-		layers = new ArrayList<Layer>();
+	NeuralNetHinged(NeuralNetHinged that) {
+		layers = new ArrayList<LayerHinged>();
 		for(int i = 0; i < that.layers.size(); i++) {
-			layers.add(new Layer(that.layers.get(i)));
+			layers.add(new LayerHinged(that.layers.get(i)));
 		}
 	}
 
 
 	/// Unmarshaling constructor
-	NeuralNet(JSONObject obj) {
-		layers = new ArrayList<Layer>();
+	NeuralNetHinged(JSONObject obj) {
+		layers = new ArrayList<LayerHinged>();
 		JSONArray arrLayers = (JSONArray)obj.get("layers");
 		Iterator<JSONObject> it = arrLayers.iterator();
 		while(it.hasNext()) {
 			JSONObject ob = it.next();
-			layers.add(new Layer(ob));
+			layers.add(new LayerHinged(ob));
 		}
 	}
 
@@ -308,7 +311,7 @@ class NeuralNet {
 
 	/// Copies all the weights and biases from "that" into "this".
 	/// (Assumes the corresponding topologies already match.)
-	void copy(NeuralNet that) {
+	void copy(NeuralNetHinged that) {
 		if(layers.size() != that.layers.size())
 			throw new IllegalArgumentException("Unexpected number of layers");
 		for(int i = 0; i < layers.size(); i++) {
@@ -319,7 +322,7 @@ class NeuralNet {
 
 	/// Feeds "in" into this neural network and propagates it forward to compute predicted outputs.
 	double[] forwardProp(double[] in) {
-		Layer l = null;
+		LayerHinged l = null;
 		for(int i = 0; i < layers.size(); i++) {
 			l = layers.get(i);
 			l.feedForward(in);
@@ -332,7 +335,7 @@ class NeuralNet {
 
 	/// Feeds the concatenation of "in1" and "in2" into this neural network and propagates it forward to compute predicted outputs.
 	double[] forwardProp2(double[] in1, double[] in2) {
-		Layer l = layers.get(0);
+		LayerHinged l = layers.get(0);
 		l.feedForward2(in1, in2);
 		l.activate();
 		double[] in = l.activation;
@@ -349,11 +352,11 @@ class NeuralNet {
 	/// Backpropagates the error to the upstream layer.
 	void backProp(double[] target) {
 		int i = layers.size() - 1;
-		Layer l = layers.get(i);
+		LayerHinged l = layers.get(i);
 		l.computeError(target);
 		l.deactivate();
 		for(i--; i >= 0; i--) {
-			Layer upstream = layers.get(i);
+			LayerHinged upstream = layers.get(i);
 			l.feedBack(upstream.error);
 			upstream.deactivate();
 			l = upstream;
@@ -365,12 +368,12 @@ class NeuralNet {
 	/// Also, refines the hinge parameter of the activation function by gradient descent (just because this is a convenient place to do that).
 	void backPropAndBendHinge(double[] target, double learningRate) {
 		int i = layers.size() - 1;
-		Layer l = layers.get(i);
+		LayerHinged l = layers.get(i);
 		l.computeError(target);
 		l.bendHinge(learningRate);
 		l.deactivate();
 		for(i--; i >= 0; i--) {
-			Layer upstream = layers.get(i);
+			LayerHinged upstream = layers.get(i);
 			l.feedBack(upstream.error);
 			upstream.bendHinge(learningRate);
 			upstream.deactivate();
@@ -380,10 +383,10 @@ class NeuralNet {
 
 
 	/// Backpropagates the error from another neural network. (This is used when training autoencoders.)
-	void backPropFromDecoder(NeuralNet decoder, double learningRate) {
+	void backPropFromDecoder(NeuralNetHinged decoder, double learningRate) {
 		int i = layers.size() - 1;
-		Layer l = decoder.layers.get(0);
-		Layer upstream = layers.get(i);
+		LayerHinged l = decoder.layers.get(0);
+		LayerHinged upstream = layers.get(i);
 		l.feedBack(upstream.error);
 		l = upstream;
 		l.bendHinge(learningRate);
@@ -413,7 +416,7 @@ class NeuralNet {
 		double amount = learningRate * lambda;
 		double smallerAmount = 0.1 * amount;
 		for(int i = 0; i < layers.size(); i++) {
-			Layer lay = layers.get(i);
+			LayerHinged lay = layers.get(i);
 			lay.straightenHinge(amount);
 			lay.regularizeWeights(smallerAmount);
 		}

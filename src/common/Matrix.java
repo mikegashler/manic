@@ -1,3 +1,5 @@
+package common;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -6,6 +8,9 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Iterator;
+import common.json.JSONObject;
+import common.json.JSONArray;
+
 
 /** This stores a matrix, A.K.A. data set, A.K.A. table. Each element is
  *  represented as a double value. Nominal values are represented using their
@@ -101,7 +106,7 @@ public class Matrix
 		}
 	}
 
-	JSONObject marshal()
+	public JSONObject marshal()
 	{
 		JSONObject obj = new JSONObject();
 		JSONArray data = new JSONArray();
