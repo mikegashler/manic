@@ -239,7 +239,7 @@ public class Matrix
 
 	public void print() {
 		for(int j = 0; j < rows(); j++) {
-			Vec.print(row(j));
+			Vec.println(row(j));
 		}
 	}
 

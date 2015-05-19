@@ -11,12 +11,10 @@ import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.io.File;
 import javax.imageio.ImageIO;
-import java.io.FileWriter;
-import java.io.FileReader;
 
 
-class NeuralNet {
-	ArrayList<LayerTanh> layers;
+public class NeuralNet {
+	public ArrayList<LayerTanh> layers;
 
 
 	/// General-purpose constructor. (Starts with no layers. You must add at least one.)

@@ -2,7 +2,7 @@ package common;
 
 public interface ITeacher {
 
-	static final double NO_FEEDBACK = -Double.MIN_VALUE;
+	public static final double NO_FEEDBACK = -Double.MIN_VALUE;
 
 	/// Implementations should evaluate the goodness of the anticipated observation.
 	/// return 1 for the best possible observation.

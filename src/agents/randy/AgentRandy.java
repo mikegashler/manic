@@ -4,8 +4,6 @@ import java.util.Random;
 import common.IAgent;
 import common.ITeacher;
 import common.json.JSONObject;
-import common.json.JSONArray;
-import common.Vec;
 
 
 // A poor agent that just picks random actions
@@ -18,6 +16,8 @@ public class AgentRandy implements IAgent {
 	public AgentRandy(Random r) {
 		rand = r;
 	}
+
+	public String getName() { return "Randy"; }
 
 	// This method is called to initialize the agent in a new world.
 	// oracle is an object that helps the agent learn what to do in this world.

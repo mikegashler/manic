@@ -1,7 +1,5 @@
 package common;
 
-import java.io.PrintWriter;
-import common.json.JSONObject;
 import common.json.JSONArray;
 import java.util.Iterator;
 
@@ -45,6 +43,14 @@ public class Vec
 			double s = 1.0 / Math.sqrt(mag);
 			for(int i = 0; i < vec.length; i++)
 				vec[i] *= s;
+		}
+	}
+
+	public static void copy(double[] dest, double[] src) {
+		if(dest.length != src.length)
+			throw new IllegalArgumentException("mismatching sizes");
+		for(int i = 0; i < src.length; i++) {
+			dest[i] = src[i];
 		}
 	}
 
