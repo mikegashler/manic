@@ -40,7 +40,7 @@
 	<li><b>Does it work?</b> It passes some tests. More testing is still needed.</li><br><br>
 
 	<li><b>How does it work?</b> You could start by reading <a href="http://uaf46365.ddns.uark.edu/lab/manic.pdf">the paper</a>.
-		Then, ask questions.
+		After that, the code fills in the rest of the details.
 		</li><br><br>
 
 	<li><b>Can you give me an overview of the structure of this code?</b>
@@ -132,7 +132,7 @@ manic
 		Those are the tests we want most of all!
 		</li><br><br>
 
-	<li><b>Can MANIC be persisted to a file?<b> Yes:
+	<li><b>Can MANIC be persisted to a file?</b> Yes:
 <pre class="code">
 JSONObject obj = agent.marshal();
 FileWriter file = new FileWriter("agent.json");
@@ -153,6 +153,34 @@ ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyTeacher());
 		In other words, you can do pretty much whatever you want with this code.
 		</li><br><br>
 
+	<li><b>How would one debug this thing with Eclipse?</b>
+		<ol>
+			<li>Launch Eclipse</li>
+			<li>If it asks you, choose a default workspace.</li>
+			<li>Close the welcome page</li>
+			<li>File->New->Project->Java Project->Next</li>
+			<li>Uncheck "Use default location", and click Browse</li>
+			<li>Find the "manic/src" folder, and click OK, then Finish</li>
+			<li>If it asks to open the associated perspective, choose Yes</li>
+			<li>In the "Package Explorer" window, right-click on "src", then click "Properties"</li>
+			<li>Click Java Compiler->Enable project specific settings, and set the Compiler compliance level to at least 1.7</li>
+			<li>Click OK. Yes, it is okay for it to rebuild. Now, it should build without errors.</li>
+			<li>Click on the bug icon. Choose Java Application->OK.</li>
+			<li>Set a breakpoint somewhere. Yes, it is okay to change the perspective again.</li>
+			<li>Rearrange your windows so you can actually see what you are doing.</li>
+			<li>Now you know why Eclipse is dying.</li>
+		</ol>
+		</li><br><br>
+
+	<li><b>Why is MANIC so slow?</b>
+		It does a lot of stuff. Your brain has about 100 billion neurons that all run in parallel.
+		This code is doing it all in serial on the Java Virtual Machine.
+		</li><br><br>
+
+	<li><b>Does this implementation include the functional equivalence of sentience that the paper conjectures about?</b>
+		No. <b>Why not?</b> No one knows how to test for sentience, anyway, so what would be the purpose
+		in implementing it?
+		</li><br><br>
 </ol>
 
 
