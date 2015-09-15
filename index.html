@@ -1,2 +1,189 @@
-<h2>Stub web page for MANIC</h2>
-Thanks. Bye.
+<html>
+<head>
+	<style>
+		body {
+			background-image:url('black_fade.png');
+			background-color:#603050;
+			background-repeat:repeat-x;
+		}
+		.toc {
+			margin-left: 30px;
+		}
+		.code {
+			margin-left: 30px;
+			color:#000000;
+			background-color:#ffffff;
+		}
+		.shell {
+			margin-left: 30px;
+			color:#000000;
+			background-color:#ffffff;
+		}
+	</style>
+</head>
+<body<br><br>
+
+<table align=center cellpadding=50 border=1 bgcolor=#e0e0c0 width=720><tr><td>
+
+<h1>A Java implementation of the MANIC cognitive architecture</h1>
+
+<br><br><br><br>
+<h2>Q and A:</h2>
+
+<ul>
+	<li><b>What the heck is this?</b> A cognitive architecture is a design for a machine
+		that attempts to achieve human-like thinking abilities.
+		A cognitive architecture called <a href="http://uaf46365.ddns.uark.edu/lab/manic.pdf">MANIC</a>
+		was designed at University of Arkansas. This is an implementation of that architecture.
+		</li><br><br>
+
+	<li><b>Does it work?</b> It passes some tests. More testing is still needed.</li><br><br>
+
+	<li><b>How does it work?</b> You could start by reading <a href="http://uaf46365.ddns.uark.edu/lab/manic.pdf">the paper</a>.
+		After that, the code fills in the rest of the details.
+		</li><br><br>
+
+	<li><b>Can you give me an overview of the structure of this code?</b>
+<pre class="code">
+manic
+  |
+  +--> docs   (You are here.)
+  |
+  +--> src    (The Java source code.)
+        |
+        +--> agents    (Implementations of various agents, including MANIC.)
+        |      |
+        |      +---> manic  (The implementation of MANIC.
+        |      |             ...what this project is all about.)
+        |      |
+        |      +---> randy  (An agent that makes random decisions. Basically,
+        |                    this is a straw man for MANIC to destroy.)
+        |
+        +---> tests    (A collection of tests for evaluating the agents.)
+        |
+        +---> common   (Various interfaces and classes that are
+                        used throughout the project.)
+</pre>
+		</li><br><br>
+
+	<li><b>What do I need to know to add a new test to your collection?</b>
+		First, take a look at the ITest interface in manic/src/common.
+		To make a test, you just need to write a class that implements this interface.
+		Next, take a look at manic/src/Main.java.
+		To add your test to the collection, just add it here.
+		Perhaps, the best way to get started is to copy one of the existing tests,
+		then modify it to do what you want.
+		Every test will do the following things:
+		<ol>
+			<li>Instatiate a teacher</li>
+			<li>Reset the agent</li>
+			<li>Call "IAgent.think" several thousand times</li>
+			<li>Evaluate how well the agent did (usually without any feedback from the teacher)</li>
+		</ol>
+		</li><br><br>
+		
+	<li><b>How can you say MANIC is intelligent if it needs a teacher?</b>
+		You can think of the teacher as part of each test challenge.
+		The role of the teacher is to help the agent know what it is supposed to do,
+		not to tell the agent exactly how to do it. Of course, that can be a fuzzy line.
+		That's why it takes a lot of challenges to make a good test.
+		</li><br><br>
+
+	<li><b>How do I make a teacher?</b>
+		Make a class that implementes the ITeacher interface in manic/src/common.
+		</li><br><br>
+
+	<li><b>How do I reset the agent, and what does resetting the agent do?</b>
+		You call the "IAgent.reset" method. This tells the agent what it needs to know to begin performing your test:
+		<ul>
+			<li>Which teacher will show it what to do?</li>
+			<li>How many values will it sense or observe each time-step?</li>
+			<li>How many values does it need to represent state in your world?</li>
+			<li>How many values do you expect it to provide for its actions?</li>
+			<li>How many time steps into the future to you expect it to plan?</li>
+		</ul>
+		</li><br><br>
+
+	<li><b>What does calling "IAgent.think" do?</b>
+		You call "IAgent.think" to give the agent "life".
+		When you call this method, you pass in a vector of observations,
+		and it returns a vector of actions.
+		Each observed value should be a continuous value between -1 and 1.
+		Each action value will be a continuous value between 0 and 1.
+		What do all those values mean? Well, that's up to your test.
+		Your job is to write a test that uses those vectors in some meaningful way.
+		The agent's job is to figure out what the values mean and use them intelligently.
+		</li><br><br>
+
+	<li><b>How do I evaluate the agent?</b>
+		Usually, when you are evaluating the agent, you will have the teacher always
+		return NO_FEEDBACK. This means it is no longer providing the agent with any
+		useful information. How you evaluate the agent is really up to you.
+		Your test will return a number that represents how well the agent performed
+		at your test. Larger numbers are better. Smaller numbers are worse.
+		Scores should only be used for ranking, so there is no established range for the scores.
+		</li><br><br>
+
+	<li><b>What if MANIC doesn't pass my test?</b>
+		Could a human pass the test? Could a human pass it without utilizing
+		any knowledge obtained outside the test? If not, it is probably not
+		reasonable to expect a computer to pass it either. If a human could pass it,
+		please contribute your test, so we can work to improve our agents until they pass it.
+		Those are the tests we want most of all!
+		</li><br><br>
+
+	<li><b>Can MANIC be persisted to a file?</b> Yes:
+<pre class="code">
+JSONObject obj = agent.marshal();
+FileWriter file = new FileWriter("agent.json");
+file.write(obj.toJSONString());
+file.close();
+</pre>
+		And, you can restore it from a file too:
+<pre class="code">
+JSONParser parser = new JSONParser();
+JSONObject obj2 = (JSONObject)parser.parse(new FileReader("agent.json"));
+ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyTeacher());
+</pre>
+		</li><br><br>
+
+	<li><b>What is the license of this code?</b>
+		The code in manic/src/common/json contains code in the Apache 2.0 license.
+		The rest was written by myself and other contributors who all agree to release their code under the Creative Commons Zero public domain dedication.
+		In other words, you can do pretty much whatever you want with this code.
+		</li><br><br>
+
+	<li><b>How would one debug this thing with Eclipse?</b>
+		<ol>
+			<li>Launch Eclipse</li>
+			<li>If it asks you, choose a default workspace.</li>
+			<li>Close the welcome page</li>
+			<li>File->New->Project->Java Project->Next</li>
+			<li>Uncheck "Use default location", and click Browse</li>
+			<li>Find the "manic/src" folder, and click OK, then Finish</li>
+			<li>If it asks to open the associated perspective, choose Yes</li>
+			<li>In the "Package Explorer" window, right-click on "src", then click "Properties"</li>
+			<li>Click Java Compiler->Enable project specific settings, and set the Compiler compliance level to at least 1.7</li>
+			<li>Click OK. Yes, it is okay for it to rebuild. Now, it should build without errors.</li>
+			<li>Click on the bug icon. Choose Java Application->OK.</li>
+			<li>Set a breakpoint somewhere. Yes, it is okay to change the perspective again.</li>
+			<li>Rearrange your windows so you can actually see what you are doing.</li>
+			<li>Now you know why Eclipse is dying.</li>
+		</ol>
+		</li><br><br>
+
+	<li><b>Why is MANIC so slow?</b>
+		It does a lot of stuff. Your brain has about 100 billion neurons that all run in parallel.
+		This code is doing it all in serial on the Java Virtual Machine.
+		</li><br><br>
+
+	<li><b>Does this implementation include the functional equivalence of sentience that the paper conjectures about?</b>
+		No. <b>Why not?</b> No one knows how to test for sentience, anyway, so what would be the purpose
+		in implementing it?
+		</li><br><br>
+</ol>
+
+
+</td></tr></table>
+</body></html>
+
