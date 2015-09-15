@@ -205,11 +205,11 @@ public class NeuralNet {
 		System.out.println("l1 weights:");
 		l1.weights.print();
 		System.out.println("l1 bias:");
-		Vec.print(l1.bias);
+		Vec.println(l1.bias);
 		System.out.println("l2 weights:");
 		l2.weights.print();
 		System.out.println("l2 bias:");
-		Vec.print(l2.bias);
+		Vec.println(l2.bias);
 
 		System.out.println("----Forward prop");
 		double in[] = new double[2];
@@ -217,7 +217,7 @@ public class NeuralNet {
 		in[1] = -0.2;
 		double[] out = nn.forwardProp(in);
 		System.out.println("activation:");
-		Vec.print(out);
+		Vec.println(out);
 
 		System.out.println("----Back prop");
 		double targ[] = new double[2];
@@ -225,9 +225,9 @@ public class NeuralNet {
 		targ[1] = 0.0;
 		nn.backProp(targ);
 		System.out.println("error 2:");
-		Vec.print(l2.error);
+		Vec.println(l2.error);
 		System.out.println("error 1:");
-		Vec.print(l1.error);
+		Vec.println(l1.error);
 		
 		
 		nn.descendGradient(in, 0.1);
@@ -235,11 +235,11 @@ public class NeuralNet {
 		System.out.println("l1 weights:");
 		l1.weights.print();
 		System.out.println("l1 bias:");
-		Vec.print(l1.bias);
+		Vec.println(l1.bias);
 		System.out.println("l2 weights:");
 		l2.weights.print();
 		System.out.println("l2 bias:");
-		Vec.print(l2.bias);
+		Vec.println(l2.bias);
 
 		if(Math.abs(l1.weights.row(0)[0] - 0.10039573704287) > 0.0000000001)
 			throw new IllegalArgumentException("failed");
