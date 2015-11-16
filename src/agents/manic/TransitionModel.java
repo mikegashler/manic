@@ -114,7 +114,7 @@ public class TransitionModel {
 		for(int i = 0; i < actions.length; i++)
 			destIn[beliefs.length + i] = actions[i];
 		for(int i = 0; i < destOut.length; i++)
-			destOut[i] = nextBeliefs[i] - beliefs[i];
+			destOut[i] = 0.5 * (nextBeliefs[i] - beliefs[i]);
 
 		// Refine the model
 		int iters = Math.min(trainIters, 100 * trainSize);
@@ -127,7 +127,7 @@ public class TransitionModel {
 	public void anticipateNextBeliefsInPlace(double[] beliefs, double[] actions, double[] anticipatedBeliefs) {
 		double[] pred = model.forwardProp2(beliefs, actions);
 		for(int i = 0; i < pred.length; i++) {
-			anticipatedBeliefs[i] = Math.max(-1.0, Math.min(1.0, beliefs[i] + pred[i]));
+			anticipatedBeliefs[i] = Math.max(-1.0, Math.min(1.0, 2.0 * (beliefs[i] + pred[i])));
 		}
 	}
 
