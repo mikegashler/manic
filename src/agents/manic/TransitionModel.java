@@ -127,7 +127,7 @@ public class TransitionModel {
 	public void anticipateNextBeliefsInPlace(double[] beliefs, double[] actions, double[] anticipatedBeliefs) {
 		double[] pred = model.forwardProp2(beliefs, actions);
 		for(int i = 0; i < pred.length; i++) {
-			anticipatedBeliefs[i] = Math.max(-1.0, Math.min(1.0, 2.0 * (beliefs[i] + pred[i])));
+			anticipatedBeliefs[i] = Math.max(-1.0, Math.min(1.0, beliefs[i] + 2.0 * pred[i]));
 		}
 	}
 
