@@ -38,7 +38,7 @@ public class AgentManic implements IAgent {
 			beliefDims,
 			2, // number of layers in the transition model
 			500, // size of short term memory for transitions
-			100, // number of training iterations to perform with each new sample
+			1000, // number of training iterations to perform with each new sample
 			rand);
 		observationModel = new ObservationModel(
 			transitionModel,

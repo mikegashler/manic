@@ -117,7 +117,7 @@ public class TransitionModel {
 			destOut[i] = 0.5 * (nextBeliefs[i] - beliefs[i]);
 
 		// Refine the model
-		int iters = Math.min(trainIters, 100 * trainSize);
+		int iters = Math.min(trainIters, 1000 * trainSize);
 		for(int i = 0; i < iters; i++)
 			doSomeTraining();
 	}
