@@ -2,19 +2,24 @@ package agents.manic;
 
 import common.Matrix;
 import common.json.JSONObject;
+import common.Vec;
 import java.util.Random;
+import common.ITutor;
 
 /// A model that maps from anticipated beliefs to contentment (or utility).
-/// This model is trained by reinforcement from a teacher.
+/// This model is trained by reinforcement from a mentor.
 public class ContentmentModel {
 	public Random rand;
 	public NeuralNet model;
 	public Matrix samples;
 	public Matrix contentment;
+	ITutor tutor;
 	public int trainPos;
 	public int trainSize;
 	public int trainIters;
 	public double learningRate;
+	public int trainProgress;
+	public double err;
 	double[] targBuf;
 
 
@@ -50,6 +55,8 @@ public class ContentmentModel {
 		trainSize = ((Long)obj.get("trainSize")).intValue();
 		trainIters = ((Long)obj.get("trainIters")).intValue();
 		learningRate = (Double)obj.get("learningRate");
+		trainProgress = ((Long)obj.get("trainProgress")).intValue();
+		err = (Double)obj.get("err");
 		targBuf = new double[1];
 	}
 
@@ -64,7 +71,14 @@ public class ContentmentModel {
 		obj.put("trainSize", trainSize);
 		obj.put("trainIters", trainIters);
 		obj.put("learningRate", learningRate);
+		obj.put("trainProgress", trainProgress);
+		obj.put("err", err);
 		return obj;
+	}
+
+
+	void setTutor(ITutor t) {
+		tutor = t;
 	}
 
 
@@ -75,10 +89,16 @@ public class ContentmentModel {
 		int index = rand.nextInt(trainSize);
 		model.regularize(learningRate, 0.000001);
 		model.trainIncremental(samples.row(index), contentment.row(index), learningRate);
+		err += Vec.squaredDistance(model.layers.get(model.layers.size() - 1).activation, contentment.row(index));
+		if(++trainProgress >= 1000) {
+			trainProgress = 0;
+			//System.out.println("Contentment error: " + Double.toString(err / 1000.0));
+			err = 0.0;
+		}
 	}
 
 
-	/// Refines this model based on feedback from the teacher
+	/// Refines this model based on feedback from the mentor
 	void trainIncremental(double[] sample_beliefs, double sample_contentment) {
 
 		// Buffer the samples
@@ -102,6 +122,8 @@ public class ContentmentModel {
 
 	/// Computes the contentment of a particular belief vector
 	public double evaluate(double[] beliefs) {
+		if(tutor != null)
+			return tutor.evaluateState(beliefs);
 		double[] output = model.forwardProp(beliefs);
 		return output[0];
 	}

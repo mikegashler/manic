@@ -4,6 +4,7 @@ import java.util.Random;
 import common.Matrix;
 import common.Vec;
 import common.json.JSONObject;
+import common.ITutor;
 
 /// A model that maps from current beliefs and actions to anticipated beliefs.
 /// This model is trained in a supervised manner.
@@ -12,6 +13,7 @@ public class TransitionModel {
 	NeuralNet model;
 	Matrix trainInput;
 	Matrix trainOutput;
+	ITutor tutor;
 	int trainPos;
 	public int trainSize;
 	int trainIters;
@@ -79,6 +81,11 @@ public class TransitionModel {
 	int actionDims() { return model.layers.get(0).inputCount() - model.layers.get(model.layers.size() - 1).outputCount(); }
 
 
+	void setTutor(ITutor t) {
+		tutor = t;
+	}
+
+
 	/// Performs one pattern-presentation of stochastic gradient descent, and dynamically tunes the learning rate
 	void doSomeTraining() {
 
@@ -93,6 +100,8 @@ public class TransitionModel {
 		if(trainProgress >= trainInput.rows()) {
 			trainProgress = 0;
 			prevErr = Math.sqrt(err / trainInput.rows());
+			err = 0.0;
+			//System.out.println("Transition error: " + Double.toString(prevErr));
 		}
 	}
 
@@ -125,6 +134,8 @@ public class TransitionModel {
 
 	/// Predict the belief vector that will result if the specified action is performed
 	public void anticipateNextBeliefsInPlace(double[] beliefs, double[] actions, double[] anticipatedBeliefs) {
+		if(tutor != null)
+			tutor.transition(beliefs, actions, anticipatedBeliefs);
 		double[] pred = model.forwardProp2(beliefs, actions);
 		for(int i = 0; i < pred.length; i++) {
 			anticipatedBeliefs[i] = Math.max(-1.0, Math.min(1.0, beliefs[i] + 2.0 * pred[i]));

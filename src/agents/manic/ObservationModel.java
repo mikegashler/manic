@@ -3,6 +3,8 @@ package agents.manic;
 import common.Matrix;
 import common.json.JSONObject;
 import java.util.Random;
+import common.ITutor;
+import common.Vec;
 
 /// A bidirectional model that maps between beliefs and observations.
 /// Mapping from observations to beliefs is done by the encoder.
@@ -16,6 +18,7 @@ public class ObservationModel {
 	NeuralNet encoderExperimental;
 	public Matrix train;
 	public Matrix validation;
+	ITutor tutor;
 	TransitionModel transitionModel;
 	public int trainPos;
 	public int trainSize;
@@ -106,6 +109,11 @@ public class ObservationModel {
 	}
 
 
+	void setTutor(ITutor t) {
+		tutor = t;
+	}
+
+
 	/// Performs one pattern-presentation of stochastic gradient descent and dynamically tunes the learning rate
 	void doSomeTraining() {
 
@@ -154,6 +162,7 @@ public class ObservationModel {
 				encoderExperimental.copy(encoder);
 				decoderExperimental.copy(decoder);
 			}
+			//System.out.println("Observation error: " + Double.toString(err1) + ", " + Double.toString(err2));
 		}
 	}
 
@@ -187,6 +196,8 @@ public class ObservationModel {
 
 	/// Refines the beliefs to correspond with actual observations
 	public void calibrateBeliefs(double[] beliefs, double[] observations) {
+		if(tutor != null)
+			Vec.copy(beliefs, tutor.observationsToState(observations));
 		for(int i = 0; i < calibrationIters; i++) {
 			decoder.refineInputs(beliefs, observations, learningRate);
 			for(int j = 0; j < beliefs.length; j++)
@@ -197,24 +208,26 @@ public class ObservationModel {
 
 	/// Decodes beliefs to predict observations
 	public double[] beliefsToObservations(double[] beliefs) {
+		if(tutor != null)
+			return tutor.stateToObservations(beliefs);
 		double[] obs = decoder.forwardProp(beliefs);
 		double[] ret = new double[obs.length];
 		for(int i = 0; i < obs.length; i++) {
 			ret[i] = obs[i];
 		}
-
 		return ret;
 	}
 
 
 	/// Encodes observations to predict beliefs
 	public double[] observationsToBeliefs(double[] observations) {
+		if(tutor != null)
+			return tutor.observationsToState(observations);
 		double[] bel = encoder.forwardProp(observations);
 		double[] ret = new double[bel.length];
 		for(int i = 0; i < bel.length; i++) {
 			ret[i] = bel[i];
 		}
-
 		return ret;
 	}
 }

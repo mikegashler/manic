@@ -6,7 +6,8 @@ import java.util.Iterator;
 import common.Vec;
 import common.json.JSONObject;
 import common.json.JSONArray;
-import common.ITeacher;
+import common.IMentor;
+import common.ITutor;
 
 
 /// A genetic algorithm that sequences actions to form a plan intended to maximize contentment.
@@ -16,7 +17,8 @@ public class PlanningSystem {
 	TransitionModel transitionModel;
 	ObservationModel observationModel;
 	ContentmentModel contentmentModel;
-	ITeacher teacher;
+	IMentor mentor;
+	ITutor tutor;
 	int maxPlanLength;
 	int refinementIters;
 	int actionDims;
@@ -27,12 +29,12 @@ public class PlanningSystem {
 
 
 	// General-purpose constructor
-	PlanningSystem(TransitionModel transition, ObservationModel observation, ContentmentModel contentment, ITeacher oracle,
+	PlanningSystem(TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor oracle,
 		int actionDimensions, int populationSize, int planRefinementIters, int burnInIters, int maxPlanLen, double discount, double explore, Random r) {
 		transitionModel = transition;
 		observationModel = observation;
 		contentmentModel = contentment;
-		teacher = oracle;
+		mentor = oracle;
 		rand = r;
 		plans = new ArrayList<Plan>();
 		if(populationSize < 2)
@@ -61,11 +63,11 @@ public class PlanningSystem {
 
 
 	/// Unmarshaling constructor
-	PlanningSystem(JSONObject obj, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, ITeacher oracle) {
+	PlanningSystem(JSONObject obj, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor oracle) {
 		transitionModel = transition;
 		observationModel = observation;
 		contentmentModel = contentment;
-		teacher = oracle;
+		mentor = oracle;
 		rand = r;
 		JSONArray plansArr = (JSONArray)obj.get("plans");
 		plans = new ArrayList<Plan>();
@@ -102,9 +104,14 @@ public class PlanningSystem {
 	}
 
 
-	/// Replaces the teacher with the specified one
-	void setTeacher(ITeacher oracle) {
-		teacher = oracle;
+	/// Replaces the mentor with the specified one
+	void setMentor(IMentor oracle) {
+		mentor = oracle;
+	}
+
+
+	void setTutor(ITutor t) {
+		tutor = t;
 	}
 
 
@@ -252,12 +259,12 @@ public class PlanningSystem {
 	}
 
 
-	/// Asks the teacher to evaluate the plan, given our current beliefs, and learn from it
-	void askTeacherToEvaluatePlan(double[] beliefs, Plan plan) {
+	/// Asks the mentor to evaluate the plan, given our current beliefs, and learn from it
+	void askMentorToEvaluatePlan(double[] beliefs, Plan plan) {
 		double[] anticipatedBeliefs = transitionModel.getFinalBeliefs(beliefs, plan);
 		double[] anticipatedObs = observationModel.beliefsToObservations(anticipatedBeliefs);
-		double feedback = teacher.evaluate(anticipatedObs);
-		if(feedback != ITeacher.NO_FEEDBACK)
+		double feedback = mentor.evaluate(anticipatedObs);
+		if(feedback != IMentor.NO_FEEDBACK)
 			contentmentModel.trainIncremental(anticipatedBeliefs, feedback);
 	}
 
@@ -265,7 +272,12 @@ public class PlanningSystem {
 	/// Finds the best plan and copies its first step
 	void chooseNextActions(double[] beliefs, double[] actions) {
 
-		// Find the best plan (according to the contentment model) and ask the teacher to evaluate it
+		if(tutor != null) {
+			tutor.chooseActions(beliefs, actions);
+			return;
+		}
+
+		// Find the best plan (according to the contentment model) and ask the mentor to evaluate it
 		int planBestIndex = 0;
 		double bestContentment = -Double.MAX_VALUE;
 		for(int i = 0; i < plans.size(); i++) {
@@ -275,20 +287,21 @@ public class PlanningSystem {
 				planBestIndex = i;
 			}
 		}
+		//System.out.println("Best contentment: " + Double.toString(bestContentment));
 		Plan bestPlan = plans.get(planBestIndex);
-		askTeacherToEvaluatePlan(beliefs, bestPlan);
+		askMentorToEvaluatePlan(beliefs, bestPlan);
 
-		// Pick a random plan from the population and ask the teacher to evaluate it (for contrast)
+		// Pick a random plan from the population and ask the mentor to evaluate it (for contrast)
 		int planBindex = rand.nextInt(plans.size() - 1);
 		if(planBindex >= planBestIndex)
 			planBindex++;
-		askTeacherToEvaluatePlan(beliefs, plans.get(planBindex));
+		askMentorToEvaluatePlan(beliefs, plans.get(planBindex));
 
-		// Make a random one-step plan, and ask the teacher to evaluate it (for contrast)
+		// Make a random one-step plan, and ask the mentor to evaluate it (for contrast)
 		double[] action = randomPlan.steps.get(0);
 		for(int i = 0; i < action.length; i++)
 			action[i] = rand.nextDouble();
-		askTeacherToEvaluatePlan(beliefs, randomPlan);
+		askMentorToEvaluatePlan(beliefs, randomPlan);
 
 		// Copy the first action vector of the best plan for our chosen action
 		double[] bestActions = bestPlan.getActions(0);

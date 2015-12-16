@@ -1,4 +1,4 @@
-build:
+build: clean
 	javac Main.java
 
 clean:

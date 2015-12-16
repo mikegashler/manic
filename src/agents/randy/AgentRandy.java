@@ -2,7 +2,8 @@ package agents.randy;
 
 import java.util.Random;
 import common.IAgent;
-import common.ITeacher;
+import common.IMentor;
+import common.ITutor;
 import common.json.JSONObject;
 
 
@@ -25,13 +26,13 @@ public class AgentRandy implements IAgent {
 	// beliefDims is the number of double values that the agent uses internally to model the state of the world. (It should generally be <= observationDims.)
 	// actionDims is the number of double values the agent uses to specify an action.
 	// maxPlanLength specifies the maximum number of time-steps into the future that the agent should attempt to plan.
-	public void reset(ITeacher oracle, int observationDims, int beliefDims, int actionDims, int maxPlanLength) {
+	public void reset(IMentor oracle, int observationDims, int beliefDims, int actionDims, int maxPlanLength) {
 		actions = new double[actionDims];
 	}
 
 
 	/// Unmarshaling constructor
-	public AgentRandy(JSONObject obj, Random r, ITeacher oracle) {
+	public AgentRandy(JSONObject obj, Random r, IMentor oracle) {
 		rand = r;
 		int actionDims = ((Long)obj.get("actionDims")).intValue();
 		actions = new double[actionDims];
@@ -46,8 +47,18 @@ public class AgentRandy implements IAgent {
 	}
 
 
-	/// Replaces the teacher with the specified one
-	public void setTeacher(ITeacher oracle) {
+	/// Replaces the mentor with the specified one
+	public void setMentor(IMentor oracle) {
+	}
+
+
+	/// Sets the tutor to use with this agent
+	public void setTutor(ITutor tutor, boolean helpObservationFunction, boolean helpTransitionFunction, boolean helpContentmentModel, boolean helpPlanningSystem) {
+	}
+
+
+	/// Does nothing, since this agent has no memory anyway.
+	public void teleport() {
 	}
 
 

@@ -2,7 +2,8 @@ package agents.manic;
 
 import java.util.Random;
 import common.IAgent;
-import common.ITeacher;
+import common.IMentor;
+import common.ITutor;
 import common.json.JSONObject;
 import common.json.JSONArray;
 import common.Vec;
@@ -32,7 +33,9 @@ public class AgentManic implements IAgent {
 	// beliefDims is the number of double values that the agent uses internally to model the state of the world. (It should generally be <= observationDims.)
 	// actionDims is the number of double values the agent uses to specify an action.
 	// maxPlanLength specifies the maximum number of time-steps into the future that the agent should attempt to plan.
-	public void reset(ITeacher oracle, int observationDims, int beliefDims, int actionDims, int maxPlanLength) {
+	public void reset(IMentor oracle, int observationDims, int beliefDims, int actionDims, int maxPlanLength) {
+		if(beliefDims > observationDims)
+			throw new IllegalArgumentException("Expected beliefDims to be <= observationDims");
 		transitionModel = new TransitionModel(
 			actionDims + beliefDims,
 			beliefDims,
@@ -53,7 +56,7 @@ public class AgentManic implements IAgent {
 		contentmentModel = new ContentmentModel(
 			beliefDims,
 			2, // number of layers in the contentment model
-			500, // size of short term memory for feedback from the teacher
+			500, // size of short term memory for feedback from the mentor
 			50, // number of training iterations to perform with each new sample
 			rand);
 		planningSystem = new PlanningSystem(
@@ -72,11 +75,12 @@ public class AgentManic implements IAgent {
 		actions = new double[actionDims];
 		beliefs = new double[beliefDims];
 		anticipatedBeliefs = new double[beliefDims];
+		teleport();
 	}
 
 
 	/// Unmarshaling constructor
-	public AgentManic(JSONObject obj, Random r, ITeacher oracle) {
+	public AgentManic(JSONObject obj, Random r, IMentor oracle) {
 		rand = r;
 		transitionModel = new TransitionModel((JSONObject)obj.get("transition"), r);
 		observationModel = new ObservationModel(transitionModel, (JSONObject)obj.get("observation"), r);
@@ -100,9 +104,26 @@ public class AgentManic implements IAgent {
 	}
 
 
-	/// Replaces the teacher with the specified one
-	public void setTeacher(ITeacher oracle) {
-		planningSystem.setTeacher(oracle);
+	/// Replaces the mentor with the specified one
+	public void setMentor(IMentor oracle) {
+		planningSystem.setMentor(oracle);
+	}
+
+
+	/// Sets the tutor to use with this agent
+	public void setTutor(ITutor tutor, boolean helpObservationFunction, boolean helpTransitionFunction, boolean helpContentmentModel, boolean helpPlanningSystem) {
+		observationModel.setTutor(helpObservationFunction ? tutor : null);
+		transitionModel.setTutor(helpTransitionFunction ? tutor : null);
+		contentmentModel.setTutor(helpContentmentModel ? tutor : null);
+		planningSystem.setTutor(helpPlanningSystem ? tutor : null);
+	}
+
+
+	/// Tells the agent that the next observation passed to learnFromExperience does not follow
+	/// from the previous one. This should be called when a game is reset, or when the state is
+	/// adjusted in a manner that the agent is not expected to anticipate.
+	public void teleport() {
+		beliefs[0] = IMentor.NO_FEEDBACK;
 	}
 
 
@@ -116,7 +137,8 @@ public class AgentManic implements IAgent {
 		observationModel.calibrateBeliefs(anticipatedBeliefs, observations);
 
 		// Learn to anticipate consequences a little better
-		transitionModel.trainIncremental(beliefs, actions, anticipatedBeliefs);
+		if(beliefs[0] != IMentor.NO_FEEDBACK)
+			transitionModel.trainIncremental(beliefs, actions, anticipatedBeliefs);
 	}
 
 
@@ -134,7 +156,7 @@ public class AgentManic implements IAgent {
 		// Try to make the plans better
 		planningSystem.refinePlans(beliefs);
 
-		// Choose an action that is expected to maximize contentment (with the assistance of the teacher, if available)
+		// Choose an action that is expected to maximize contentment (with the assistance of the mentor, if available)
 		planningSystem.chooseNextActions(beliefs, actions);
 
 		// Anticipate how the world will change with time
@@ -164,7 +186,7 @@ public class AgentManic implements IAgent {
 		// Make an agent
 		AgentManic agent = new AgentManic(
 			new Random(1234),
-			new MyTeacher(),
+			new MyMentor(),
 			8, // observation dims
 			3, // belief dims
 			2, // action dims
@@ -179,7 +201,7 @@ public class AgentManic implements IAgent {
 		// Read it from a file
 		JSONParser parser = new JSONParser();
 		JSONObject obj2 = (JSONObject)parser.parse(new FileReader("test.json"));
-		AgentManic agent2 = new AgentManic(obj2, new Random(1234), new MyTeacher());
+		AgentManic agent2 = new AgentManic(obj2, new Random(1234), new MyMentor());
 
 		System.out.println("passed");
 	}

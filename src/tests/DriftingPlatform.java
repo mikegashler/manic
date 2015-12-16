@@ -1,6 +1,7 @@
 package tests;
 
-import common.ITeacher;
+import common.IMentor;
+import common.ITutor;
 import common.IAgent;
 import common.ITest;
 import common.Vec;
@@ -12,10 +13,10 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 
 
-class MinimizeMagnitudeTeacher implements ITeacher {
+class DriftingPlatformMentor implements IMentor {
 	boolean active;
 
-	MinimizeMagnitudeTeacher() {
+	DriftingPlatformMentor() {
 		active = true;
 	}
 
@@ -28,6 +29,56 @@ class MinimizeMagnitudeTeacher implements ITeacher {
 		return Math.exp(-sqMag);
 	}
 }
+
+
+
+
+class DriftingPlatformTutor implements ITutor {
+	double controlOrigin;
+	double stepSize;
+	DriftingPlatformMentor mentor;
+
+	DriftingPlatformTutor(DriftingPlatformMentor m)
+	{
+		controlOrigin = 0.0;
+		stepSize = 0.05;
+		mentor = m;
+	}
+
+	public double[] observationsToState(double[] observations) {
+		return Vec.copy(observations);
+	}
+
+	public double[] stateToObservations(double[] state) {
+		return Vec.copy(state);
+	}
+
+	public void transition(double[] current_state, double[] actions, double[] next_state) {
+		Vec.copy(next_state, current_state);
+		double angle = actions[0] * 2.0 * Math.PI + controlOrigin;
+		next_state[0] += stepSize * Math.cos(angle);
+		next_state[1] += stepSize * Math.sin(angle);
+		Vec.clip(next_state, -1.0, 1.0);
+	}
+
+	public double evaluateState(double[] state) {
+		double[] obs = stateToObservations(state);
+		return mentor.evaluate(obs);
+	}
+
+	public void chooseActions(double[] state, double[] actions) {
+		double theta = Math.atan2(state[1], state[0]);
+		theta -= controlOrigin;
+		theta += Math.PI;
+		while(theta < 0.0)
+			theta += 1.0;
+		while(theta > 1.0)
+			theta -= 1.0;
+		theta /= (2.0 * Math.PI);
+		actions[0] = theta;
+	}
+}
+
 
 
 
@@ -166,28 +217,31 @@ public class DriftingPlatform implements ITest {
 		System.out.println("----------------------");
 		System.out.println("In this test, the agent is placed on an imaginary 2D platform of infinite size. " +
 				"The agent's objective is to stay near the origin. Each time-step, the platform " +
-				"drifts a small amount in a random direction. The agent can step in any direction "+
-				"(from 0 to 2*PI). Initially, a teacher will help it learn what to do.\n");
+				"drifts a small amount in a random direction. The agent can step in any direction " +
+				"(from 0 to 2*PI). Initially, a mentor will help it learn what to do.\n");
 
 		// Define some constants for this test
 		double driftSpeed = 0.1;
-		double stepSize = 0.1;
-		double controlOrigin = 0.0;
+		double stepSize = 0.05;
 
-		// Make an agent
-		MinimizeMagnitudeTeacher teacher = new MinimizeMagnitudeTeacher();
-		agent.reset(teacher, // This teacher prefers plans that lead closer to the origin
+		// Set up the agent
+		DriftingPlatformMentor mentor = new DriftingPlatformMentor();
+		agent.reset(mentor, // This mentor prefers plans that lead closer to the origin
 			2, // The agent observes its x,y position (which is the complete state of this world)
 			2, // the agent models state with 2 dimensions because it cannot be simplified further
 			1, // The agent chooses a direction for travel
-			10); // The agent plans up to 10 time-steps into the future
+			1); // The agent plans up to 1 time-steps into the future
+		DriftingPlatformTutor tutor = new DriftingPlatformTutor(mentor);
 
-		// Train with teacher
+		// To debug an agent that isn't working, uncomment the following line and verify that it works.
+		// Then, set each "true" to "false" until you find the component that isn't doing its job properly.
+		//agent.setTutor(tutor, true/*observation*/, true/*transition*/, true/*contentment*/, true/*planning*/);
+
+		// Train with mentor
 		System.out.println("Phase 1 of 3: Supervised learning...");
 		System.out.println("|------------------------------------------------|");
-		double[] state_orig = new double[2];
-		double[] state_drifted = new double[2];
 		double[] state = new double[2];
+		double[] next_state = new double[2];
 		double[] drift = new double[2];
 		for(int i = 0; i < 2000; i++) {
 
@@ -195,32 +249,29 @@ public class DriftingPlatform implements ITest {
 				System.out.print(">");
 
 			// The platform drifts in a random direction
-			Vec.copy(state_orig, state);
 			drift[0] = rand.nextGaussian();
 			drift[1] = rand.nextGaussian();
 			Vec.normalize(drift);
 			Vec.scale(drift, driftSpeed);
 			Vec.add(state, drift);
 			Vec.clip(state, -1.0, 1.0);
-			Vec.copy(state_drifted, state);
 
 			// The agent takes a step in a direction of its choice
-			double[] act = agent.think(state);
-			double angle = act[0] * 2.0 * Math.PI + controlOrigin;
-			state[0] += stepSize * Math.cos(angle);
-			state[1] += stepSize * Math.sin(angle);
-			Vec.clip(state, -1.0, 1.0);
+			double[] obs = tutor.stateToObservations(state);
+			double[] act = agent.think(obs);
+			tutor.transition(state, act, next_state);
+			Vec.copy(state, next_state);
 		}
 
-		System.out.println("\n\nNow, the teacher is removed, so the agent is on its own.");
-		teacher.active = false;
+		System.out.println("\n\nNow, the mentor is removed, so the agent is completely on its own.");
+		mentor.active = false;
 
 		System.out.println("Also, to make the problem more challenging, the agent's controls " +
 				"are changed by 120 degrees. The agent will now have to figure out how to operate " +
-				"the new controls without a teacher to help it.\n");
-		controlOrigin += Math.PI * 2.0 / 3.0;
+				"the new controls without a mentor to help it.\n");
+		tutor.controlOrigin += Math.PI * 2.0 / 3.0;
 
-		// Train without teacher
+		// Train without mentor
 		System.out.println("Phase 2 of 3: Unsupervised learning...");
 		System.out.println("|------------------------------------------------|");
 		for(int i = 0; i < 2000; i++) {
@@ -231,21 +282,18 @@ public class DriftingPlatform implements ITest {
 //				makeVisualization(Integer.toString(i), (agents.manic.AgentManic)agent, state_orig, state_drifted, state);
 
 			// The platform drifts in a random direction
-			Vec.copy(state_orig, state);
 			drift[0] = rand.nextGaussian();
 			drift[1] = rand.nextGaussian();
 			Vec.normalize(drift);
 			Vec.scale(drift, driftSpeed);
 			Vec.add(state, drift);
 			Vec.clip(state, -1.0, 1.0);
-			Vec.copy(state_drifted, state);
 
 			// The agent takes a step in a direction of its choice
-			double[] act = agent.think(state);
-			double angle = act[0] * 2.0 * Math.PI + controlOrigin;
-			state[0] += stepSize * Math.cos(angle);
-			state[1] += stepSize * Math.sin(angle);
-			Vec.clip(state, -1.0, 1.0);
+			double[] obs = tutor.stateToObservations(state);
+			double[] act = agent.think(obs);
+			tutor.transition(state, act, next_state);
+			Vec.copy(state, next_state);
 		}
 
 		// Test
@@ -266,26 +314,24 @@ public class DriftingPlatform implements ITest {
 // 				makeVisualization(Integer.toString(i), (agents.manic.AgentManic)agent, state_orig, state_drifted, state);
 
 			// The platform drifts in a random direction
-			Vec.copy(state_orig, state);
 			drift[0] = rand.nextGaussian();
 			drift[1] = rand.nextGaussian();
 			Vec.normalize(drift);
 			Vec.scale(drift, driftSpeed);
 			Vec.add(state, drift);
 			Vec.clip(state, -1.0, 1.0);
-			Vec.copy(state_drifted, state);
 
 			// The agent takes a step in a direction of its choice
-			double[] act = agent.think(state);
-			double angle = act[0] * 2.0 * Math.PI + controlOrigin;
-			state[0] += stepSize * Math.cos(angle);
-			state[1] += stepSize * Math.sin(angle);
-			Vec.clip(state, -1.0, 1.0);
-			// Track the farthest the agent ever drifts from the origin
-			sumSqMag += Vec.squaredMagnitude(state);
+			double[] obs = tutor.stateToObservations(state);
+			double[] act = agent.think(obs);
+			tutor.transition(state, act, next_state);
+			Vec.copy(state, next_state);
+
+			// Sum up how far the agent ever drifts from the origin
+			sumSqMag += Math.sqrt(Vec.squaredMagnitude(state));
 		}
 
-		double aveDist = Math.sqrt(sumSqMag / 1000.0);
+		double aveDist = sumSqMag / 1000.0;
 		System.out.println("\n\nThe agent's average distance from the origin during the testing phase was " + Double.toString(aveDist));
 
 		return -aveDist; // Bigger is supposed to be better, so we negate the average distance
