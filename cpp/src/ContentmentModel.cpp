@@ -1,5 +1,6 @@
 #include "ContentmentModel.h"
 #include <iostream>
+#include <GClasses/GActivation.h>
 
 // General-purpose constructor
 ContentmentModel::ContentmentModel(size_t beliefDims, size_t total_layers, size_t queue_size, size_t trainItersPerPattern, GRand& r)
@@ -16,8 +17,8 @@ err(0.0)
 	// Init the model
 	rand = r;
 	int hidden = std::min((size_t)30, beliefDims * 10);
-	model.addLayer(new GLayerClassic(beliefDims, hidden));
-	model.addLayer(new GLayerClassic(hidden, 1));
+	model.addLayer(new GLayerClassic(beliefDims, hidden, new GActivationBend()));
+	model.addLayer(new GLayerClassic(hidden, 1, new GActivationBend()));
 	GUniformRelation relIn(beliefDims);
 	GUniformRelation relOut(1);
 	model.beginIncrementalLearning(relIn, relOut);

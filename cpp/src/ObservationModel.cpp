@@ -1,4 +1,5 @@
 #include "ObservationModel.h"
+#include <GClasses/GActivation.h>
 
 
 /// General-purpose constructor
@@ -23,16 +24,16 @@ calibrationIters(0)
 
 	// Init the encoder
 	int hidden = std::max((size_t)30, (observation_dims + belief_dims) / 2);
-	encoder.addLayer(new GLayerClassic(observation_dims, hidden));
-	encoder.addLayer(new GLayerClassic(hidden, belief_dims));
+	encoder.addLayer(new GLayerClassic(observation_dims, hidden, new GActivationBend()));
+	encoder.addLayer(new GLayerClassic(hidden, belief_dims, new GActivationBend()));
 	GUniformRelation relInEnc(observation_dims);
 	GUniformRelation relOutEnc(belief_dims);
 	encoder.setLearningRate(0.03);
 	encoder.beginIncrementalLearning(relInEnc, relOutEnc);
 
 	// Init the decoder
-	decoder.addLayer(new GLayerClassic(belief_dims, hidden));
-	decoder.addLayer(new GLayerClassic(hidden, observation_dims));
+	decoder.addLayer(new GLayerClassic(belief_dims, hidden, new GActivationBend()));
+	decoder.addLayer(new GLayerClassic(hidden, observation_dims, new GActivationBend()));
 	GUniformRelation relInDec(belief_dims);
 	GUniformRelation relOutDec(observation_dims);
 	decoder.setLearningRate(0.03);
