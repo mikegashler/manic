@@ -49,25 +49,36 @@ manic
   |
   +--> docs   (You are here.)
   |
-  +--> src    (The Java source code.)
+  +--> java   (For Java programmers)
+  |     |
+  |     +--> class (Where compiled bytecode goes)
+  |     |
+  |     +--> src   (The Java source code)
+  |           |
+  |           +--> agents    (Implementations of various agents, including MANIC.)
+  |           |      |
+  |           |      +---> manic  (The implementation of MANIC.
+  |           |      |             ...what this project is all about.)
+  |           |      |
+  |           |      +---> randy  (An agent that makes random decisions. Basically,
+  |           |                    this is a straw man for MANIC to destroy.)
+  |           |
+  |           +---> tests    (A collection of tests for evaluating the agents.)
+  |           |
+  |           +---> common   (Various interfaces and classes that are
+  |                           used throughout the project.)
+  |
+  +--> cpp   (for C++ programmers)
         |
-        +--> agents    (Implementations of various agents, including MANIC.)
-        |      |
-        |      +---> manic  (The implementation of MANIC.
-        |      |             ...what this project is all about.)
-        |      |
-        |      +---> randy  (An agent that makes random decisions. Basically,
-        |                    this is a straw man for MANIC to destroy.)
+        +--> bin   (Where the binaries go)
         |
-        +---> tests    (A collection of tests for evaluating the agents.)
-        |
-        +---> common   (Various interfaces and classes that are
-                        used throughout the project.)
+        +--> src   (The C++ source code)
+                      
 </pre>
 		</li><br><br>
 
-	<li><b>What do I need to know to add a new test to your collection?</b>
-		First, take a look at the ITest interface in manic/src/common.
+	<li><b>What do I need to know to add a new test to the Java version of your collection?</b>
+		First, take a look at the ITest interface in manic/java/src/common.
 		To make a test, you just need to write a class that implements this interface.
 		Next, take a look at manic/src/Main.java.
 		To add your test to the collection, just add it here.
@@ -75,28 +86,28 @@ manic
 		then modify it to do what you want.
 		Every test will do the following things:
 		<ol>
-			<li>Instatiate a teacher</li>
+			<li>Instatiate a mentor</li>
 			<li>Reset the agent</li>
 			<li>Call "IAgent.think" several thousand times</li>
-			<li>Evaluate how well the agent did (usually without any feedback from the teacher)</li>
+			<li>Evaluate how well the agent did (usually without any feedback from the mentor)</li>
 		</ol>
 		</li><br><br>
 		
-	<li><b>How can you say MANIC is intelligent if it needs a teacher?</b>
-		You can think of the teacher as part of each test challenge.
-		The role of the teacher is to help the agent know what it is supposed to do,
-		not to tell the agent exactly how to do it. Of course, that can be a fuzzy line.
+	<li><b>How can you say MANIC is intelligent if it needs a mentor?</b>
+		You can think of the mentor as part of each test challenge.
+		The role of the mentor is to help the agent know what it is supposed to do,
+		not to tell the agent how to do it. Of course, that can be a fuzzy line.
 		That's why it takes a lot of challenges to make a good test.
 		</li><br><br>
 
-	<li><b>How do I make a teacher?</b>
-		Make a class that implementes the ITeacher interface in manic/src/common.
+	<li><b>How do I make a mentor?</b>
+		Make a class that implementes the IMentor interface in manic/src/common.
 		</li><br><br>
 
 	<li><b>How do I reset the agent, and what does resetting the agent do?</b>
 		You call the "IAgent.reset" method. This tells the agent what it needs to know to begin performing your test:
 		<ul>
-			<li>Which teacher will show it what to do?</li>
+			<li>Which mentor will show it what to do?</li>
 			<li>How many values will it sense or observe each time-step?</li>
 			<li>How many values does it need to represent state in your world?</li>
 			<li>How many values do you expect it to provide for its actions?</li>
@@ -116,7 +127,7 @@ manic
 		</li><br><br>
 
 	<li><b>How do I evaluate the agent?</b>
-		Usually, when you are evaluating the agent, you will have the teacher always
+		Usually, when you are evaluating the agent, you will have the mentor always
 		return NO_FEEDBACK. This means it is no longer providing the agent with any
 		useful information. How you evaluate the agent is really up to you.
 		Your test will return a number that represents how well the agent performed
@@ -143,7 +154,7 @@ file.close();
 <pre class="code">
 JSONParser parser = new JSONParser();
 JSONObject obj2 = (JSONObject)parser.parse(new FileReader("agent.json"));
-ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyTeacher());
+ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyMentor());
 </pre>
 		</li><br><br>
 
@@ -153,7 +164,7 @@ ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyTeacher());
 		In other words, you can do pretty much whatever you want with this code.
 		</li><br><br>
 
-	<li><b>How would one debug this thing with Eclipse?</b>
+	<li><b>How would one debug the Java version with Eclipse?</b>
 		<ol>
 			<li>Launch Eclipse</li>
 			<li>If it asks you, choose a default workspace.</li>
@@ -178,8 +189,7 @@ ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyTeacher());
 		</li><br><br>
 
 	<li><b>Does this implementation include the functional equivalence of sentience that the paper conjectures about?</b>
-		No. <b>Why not?</b> No one knows how to test for sentience, anyway, so what would be the purpose
-		in implementing it?
+		No. <b>Why not?</b> No one knows how to test for sentience, anyway, so what would be the purpose in implementing it?
 		</li><br><br>
 </ol>
 
