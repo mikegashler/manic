@@ -22,7 +22,7 @@ public interface IAgent {
 	void setMentor(IMentor oracle);
 
 	/// Sets the tutor to use with this agent.
-	void setTutor(ITutor tutor, boolean helpObservationFunction, boolean helpTransitionFunction, boolean helpContentmentModel, boolean helpPlanningSystem);
+	void setTutor(ITutor tutor, boolean helpWithObservations, boolean helpWithTransitions, boolean helpWithContentment, boolean helpWithPlanning);
 
 	/// A vector of observations goes in. All observed values may be expected to fall between -1 and 1.
 	/// Returns a vector of chosen actions. All returned values should fall between 0 and 1.

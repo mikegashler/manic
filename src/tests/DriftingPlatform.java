@@ -222,7 +222,6 @@ public class DriftingPlatform implements ITest {
 
 		// Define some constants for this test
 		double driftSpeed = 0.1;
-		double stepSize = 0.05;
 
 		// Set up the agent
 		DriftingPlatformMentor mentor = new DriftingPlatformMentor();
@@ -238,7 +237,7 @@ public class DriftingPlatform implements ITest {
 		//agent.setTutor(tutor, true/*observation*/, true/*transition*/, true/*contentment*/, true/*planning*/);
 
 		// Train with mentor
-		System.out.println("Phase 1 of 3: Supervised learning...");
+		System.out.println("Phase 1 of 3: Learn the objective from the mentor...");
 		System.out.println("|------------------------------------------------|");
 		double[] state = new double[2];
 		double[] next_state = new double[2];
@@ -272,7 +271,7 @@ public class DriftingPlatform implements ITest {
 		tutor.controlOrigin += Math.PI * 2.0 / 3.0;
 
 		// Train without mentor
-		System.out.println("Phase 2 of 3: Unsupervised learning...");
+		System.out.println("Phase 2 of 3: Figure out new controls (without mentor)...");
 		System.out.println("|------------------------------------------------|");
 		for(int i = 0; i < 2000; i++) {
 
@@ -302,7 +301,7 @@ public class DriftingPlatform implements ITest {
 				"distance between the origin and the agent. (If the agent is intelligent, it should achieve a low " +
 				"average distance, such as 0.2. If it is unintelligent, it will achieve a higher average distance, " +
 				"such as 0.7.\n");
-		System.out.println("Phase 3 of 3: Testing...");
+		System.out.println("Phase 3 of 3: Testing (without mentor)...");
 		System.out.println("|------------------------------------------------|");
 		double sumSqMag = 0.0;
 		for(int i = 0; i < 1000; i++) {
