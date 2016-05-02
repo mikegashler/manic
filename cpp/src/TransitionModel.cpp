@@ -128,7 +128,7 @@ void TransitionModel::anticipateNextBeliefs(const GVec& beliefs, const GVec& act
 		buf.put(0, beliefs);
 		buf.put(beliefs.size(), actions);
 		model.forwardProp(buf);
-		anticipatedBeliefs = beliefs;
+		anticipatedBeliefs.copy(beliefs);
 		anticipatedBeliefs.addScaled(2.0, model.outputLayer().activation());
 		anticipatedBeliefs.clip(-1.0, 1.0);
 	}

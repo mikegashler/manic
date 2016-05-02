@@ -175,7 +175,7 @@ void ObservationModel::trainIncremental(const GVec& observation)
 		if(trainPos >= train.rows())
 			trainPos = 0;
 	}
-	*dest = observation;
+	dest->copy(observation);
 
 	// Train
 	size_t iters = std::min(trainIters, trainSize);
@@ -212,7 +212,7 @@ void ObservationModel::beliefsToObservations(const GVec& beliefs, GVec& observat
 	else
 	{
 		decoder.forwardProp(beliefs);
-		observations = decoder.outputLayer().activation();
+		observations.copy(decoder.outputLayer().activation());
 	}
 }
 
@@ -227,6 +227,6 @@ void ObservationModel::observationsToBeliefs(const GVec& observations, GVec& bel
 	{
 		beliefs.put(0, observations, 0, beliefs.size());
 		encoder.forwardProp(observations);
-		beliefs = encoder.outputLayer().activation();
+		beliefs.copy(encoder.outputLayer().activation());
 	}
 }

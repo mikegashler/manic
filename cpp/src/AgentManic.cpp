@@ -128,9 +128,8 @@ void AgentManic::learnFromExperience(GVec& observations)
 GVec& AgentManic::decideWhatToDo()
 {
 	// Make the anticipated beliefs the new beliefs
-	GVec& tmp = beliefs;
-	beliefs = anticipatedBeliefs;
-	anticipatedBeliefs = tmp;
+	for(size_t i = 0; i < beliefs.size(); i++)
+		std::swap(beliefs[i], anticipatedBeliefs[i]);
 
 	// Drop the first action in every plan
 	planningSystem->advanceTime();

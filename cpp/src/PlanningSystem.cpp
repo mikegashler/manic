@@ -157,9 +157,9 @@ void PlanningSystem::replace(size_t childIndex)
 		size_t crossOverPoint = rand.next(mother.rows());
 		GMatrix* pChild = new GMatrix(0, mother.cols());
 		for(size_t i = 0; i < crossOverPoint; i++)
-			pChild->newRow() = mother[i];
+			pChild->newRow().copy(mother[i]);
 		for(size_t i = crossOverPoint; i < father.rows(); i++)
-			pChild->newRow() = father[i];
+			pChild->newRow().copy(father[i]);
 		delete(plans[childIndex]);
 		plans[childIndex] = pChild;
 	} else {
@@ -314,6 +314,6 @@ void PlanningSystem::chooseNextActions(const GVec& beliefs, GVec& actions)
 		if(burnIn > 0)
 			burnIn--;
 		GAssert(bestActions->size() == actionDims);
-		actions = *bestActions;
+		actions.copy(*bestActions);
 	}
 }
