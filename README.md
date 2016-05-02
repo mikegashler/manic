@@ -8,7 +8,7 @@ cd java/src
 javac Main.java
 
 # How to build the C++ version
-install Waffles (https://github.com/mikegashler/waffles)
+install Waffles (https://github.com/mikegashler/waffles)  
 cd cpp/src  
 make opt
 

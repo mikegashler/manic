@@ -49,20 +49,30 @@ manic
   |
   +--> docs   (You are here.)
   |
-  +--> src    (The Java source code.)
+  +--> java   (The Java version.)
+  |     |
+  |     +--> src
+  |           |
+  |           +--> agents    (Implementations of agents, including MANIC.)
+  |           |      |
+  |           |      +---> manic  (The implementation of MANIC.
+  |           |      |             ...what this project is all about.)
+  |           |      |
+  |           |      +---> randy  (An agent that makes random decisions.
+  |           |                    Basically, this is a straw man for MANIC
+  |           |                    to destroy.)
+  |           |
+  |           +---> tests    (Tests for evaluating the agents.)
+  |           |
+  |           +---> common   (Various interfaces and classes that are
+  |                           used throughout the project.)
+  |
+  +--> cpp   (The C++ version.)
         |
-        +--> agents    (Implementations of various agents, including MANIC.)
-        |      |
-        |      +---> manic  (The implementation of MANIC.
-        |      |             ...what this project is all about.)
-        |      |
-        |      +---> randy  (An agent that makes random decisions. Basically,
-        |                    this is a straw man for MANIC to destroy.)
+        +--> src   (The C++ source code.)
         |
-        +---> tests    (A collection of tests for evaluating the agents.)
-        |
-        +---> common   (Various interfaces and classes that are
-                        used throughout the project.)
+        +--> bin   (The C++ binaries.)
+
 </pre>
 		</li><br><br>
 
@@ -173,7 +183,7 @@ ManicAgent agent2 = new ManicAgent(obj2, new Random(1234), new MyTeacher());
 		</li><br><br>
 
 	<li><b>Why is MANIC so slow?</b>
-		It does a lot of stuff. Your brain has about 100 billion neurons that all run in parallel.
+		It does a lot of stuff. The neurons in your brain think in parallel.
 		This code is doing it all in serial on the Java Virtual Machine.
 		</li><br><br>
 
