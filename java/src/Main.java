@@ -37,7 +37,7 @@ public class Main {
 
 	public static void main(String[] args) throws Exception {
 
-		Random r = new Random(1234);
+		Random r = new Random(0);
 		
 		// Make a list of agents
 		ArrayList<IAgent> agents = new ArrayList<IAgent>();

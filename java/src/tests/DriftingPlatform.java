@@ -5,6 +5,7 @@ import common.ITutor;
 import common.IAgent;
 import common.ITest;
 import common.Vec;
+import common.Matrix;
 import java.util.Random;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -13,35 +14,41 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 
 
+// The mentor's job is to evaluate the plans that an agent makes.
+// (It's like the hot-and-cold game.) The mentor cannot tell the agent what to do.
+// It can only tell the agent when it is on the right track.
 class DriftingPlatformMentor implements IMentor {
-	boolean active;
+	boolean alive;
 
 	DriftingPlatformMentor() {
-		active = true;
+		alive = true;
 	}
 
-	// Prefer the fantasy that minimizes the magnitude of the observation vector
-	public double evaluate(double[] anticipatedObservations) {
-		if(!active)
+	// Prefer the plan that minimizes the magnitude of the observation vector
+	public double evaluatePlan(IAgent agent, Matrix plan) {
+		if(!alive)
 			return NO_FEEDBACK;
+		double[] anticipatedObs = agent.anticipateObservation(plan);
+		return evaluateObservation(anticipatedObs);
+	}
 
-		double sqMag = Vec.squaredMagnitude(anticipatedObservations);
+	static double evaluateObservation(double[] anticipatedObs) {
+		double sqMag = Vec.squaredMagnitude(anticipatedObs);
 		return Math.exp(-sqMag);
 	}
 }
 
 
 
-
+// The tutor's job is to help the agent cheat.
+// A tutor should be used only for debugging.
 class DriftingPlatformTutor implements ITutor {
-	double controlOrigin;
-	double stepSize;
+	DriftingPlatform world;
 	DriftingPlatformMentor mentor;
 
-	DriftingPlatformTutor(DriftingPlatformMentor m)
+	DriftingPlatformTutor(DriftingPlatform w, DriftingPlatformMentor m)
 	{
-		controlOrigin = 0.0;
-		stepSize = 0.05;
+		world = w;
 		mentor = m;
 	}
 
@@ -50,25 +57,21 @@ class DriftingPlatformTutor implements ITutor {
 	}
 
 	public double[] stateToObservations(double[] state) {
-		return Vec.copy(state);
+		return world.computeObservations(state);
 	}
 
 	public void transition(double[] current_state, double[] actions, double[] next_state) {
-		Vec.copy(next_state, current_state);
-		double angle = actions[0] * 2.0 * Math.PI + controlOrigin;
-		next_state[0] += stepSize * Math.cos(angle);
-		next_state[1] += stepSize * Math.sin(angle);
-		Vec.clip(next_state, -1.0, 1.0);
+		world.computeNextState(current_state, actions, next_state);
 	}
 
 	public double evaluateState(double[] state) {
 		double[] obs = stateToObservations(state);
-		return mentor.evaluate(obs);
+		return DriftingPlatformMentor.evaluateObservation(obs);
 	}
 
 	public void chooseActions(double[] state, double[] actions) {
 		double theta = Math.atan2(state[1], state[0]);
-		theta -= controlOrigin;
+		theta -= world.controlOrigin;
 		theta += Math.PI;
 		while(theta < 0.0)
 			theta += 1.0;
@@ -84,11 +87,27 @@ class DriftingPlatformTutor implements ITutor {
 
 public class DriftingPlatform implements ITest {
 
+	double stepSize;
+	double controlOrigin;
 	Random rand;
 
 
 	public DriftingPlatform(Random r) {
+		stepSize = 0.05;
+		controlOrigin = 0.0;
 		rand = r;
+	}
+
+	double[] computeObservations(double[] state) {
+		return Vec.copy(state);
+	}
+
+	void computeNextState(double[] current_state, double[] actions, double[] next_state) {
+		Vec.copy(next_state, current_state);
+		double angle = actions[0] * 2.0 * Math.PI + controlOrigin;
+		next_state[0] += stepSize * Math.cos(angle);
+		next_state[1] += stepSize * Math.sin(angle);
+		Vec.clip(next_state, -1.0, 1.0);
 	}
 
 /*
@@ -230,10 +249,10 @@ public class DriftingPlatform implements ITest {
 			2, // the agent models state with 2 dimensions because it cannot be simplified further
 			1, // The agent chooses a direction for travel
 			1); // The agent plans up to 1 time-steps into the future
-		DriftingPlatformTutor tutor = new DriftingPlatformTutor(mentor);
 
 		// To debug an agent that isn't working, uncomment the following line and verify that it works.
 		// Then, set each "true" to "false" until you find the component that isn't doing its job properly.
+		//DriftingPlatformTutor tutor = new DriftingPlatformTutor(mentor);
 		//agent.setTutor(tutor, true/*observation*/, true/*transition*/, true/*contentment*/, true/*planning*/);
 
 		// Train with mentor
@@ -256,19 +275,19 @@ public class DriftingPlatform implements ITest {
 			Vec.clip(state, -1.0, 1.0);
 
 			// The agent takes a step in a direction of its choice
-			double[] obs = tutor.stateToObservations(state);
+			double[] obs = computeObservations(state);
 			double[] act = agent.think(obs);
-			tutor.transition(state, act, next_state);
+			computeNextState(state, act, next_state);
 			Vec.copy(state, next_state);
 		}
 
-		System.out.println("\n\nNow, the mentor is removed, so the agent is completely on its own.");
-		mentor.active = false;
+		System.out.println("\n\nNow, the mentor dies, so the agent is on its own.");
+		mentor.alive = false;
 
 		System.out.println("Also, to make the problem more challenging, the agent's controls " +
 				"are changed by 120 degrees. The agent will now have to figure out how to operate " +
 				"the new controls without a mentor to help it.\n");
-		tutor.controlOrigin += Math.PI * 2.0 / 3.0;
+		controlOrigin += Math.PI * 2.0 / 3.0;
 
 		// Train without mentor
 		System.out.println("Phase 2 of 3: Figure out new controls (without mentor)...");
@@ -289,9 +308,9 @@ public class DriftingPlatform implements ITest {
 			Vec.clip(state, -1.0, 1.0);
 
 			// The agent takes a step in a direction of its choice
-			double[] obs = tutor.stateToObservations(state);
+			double[] obs = computeObservations(state);
 			double[] act = agent.think(obs);
-			tutor.transition(state, act, next_state);
+			computeNextState(state, act, next_state);
 			Vec.copy(state, next_state);
 		}
 
@@ -321,9 +340,9 @@ public class DriftingPlatform implements ITest {
 			Vec.clip(state, -1.0, 1.0);
 
 			// The agent takes a step in a direction of its choice
-			double[] obs = tutor.stateToObservations(state);
+			double[] obs = computeObservations(state);
 			double[] act = agent.think(obs);
-			tutor.transition(state, act, next_state);
+			computeNextState(state, act, next_state);
 			Vec.copy(state, next_state);
 
 			// Sum up how far the agent ever drifts from the origin

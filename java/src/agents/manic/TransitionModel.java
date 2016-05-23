@@ -5,6 +5,7 @@ import common.Matrix;
 import common.Vec;
 import common.json.JSONObject;
 import common.ITutor;
+import common.Matrix;
 
 /// A model that maps from current beliefs and actions to anticipated beliefs.
 /// This model is trained in a supervised manner.
@@ -152,9 +153,12 @@ public class TransitionModel {
 
 
 	/// Compute the anticipated belief vector that will result if the specified plan is executed.
-	public double[] getFinalBeliefs(double[] beliefs, Plan plan) {
-		for(int i = 0; i < plan.size(); i++) {
-			beliefs = anticipateNextBeliefs(beliefs, plan.getActions(i));
+	public double[] getFinalBeliefs(double[] beliefs, Matrix plan) {
+		if(plan != null)
+		{
+			for(int i = 0; i < plan.rows(); i++) {
+				beliefs = anticipateNextBeliefs(beliefs, plan.row(i));
+			}
 		}
 		return beliefs;
 	}

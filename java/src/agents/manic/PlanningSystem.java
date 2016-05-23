@@ -7,13 +7,16 @@ import common.Vec;
 import common.json.JSONObject;
 import common.json.JSONArray;
 import common.IMentor;
+import common.IAgent;
 import common.ITutor;
+import common.Matrix;
 
 
 /// A genetic algorithm that sequences actions to form a plan intended to maximize contentment.
 public class PlanningSystem {
-	Plan randomPlan;
-	public ArrayList<Plan> plans;
+	IAgent self;
+	Matrix randomPlan;
+	public ArrayList<Matrix> plans;
 	TransitionModel transitionModel;
 	ObservationModel observationModel;
 	ContentmentModel contentmentModel;
@@ -29,14 +32,15 @@ public class PlanningSystem {
 
 
 	// General-purpose constructor
-	PlanningSystem(TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor oracle,
+	PlanningSystem(IAgent agent, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor _mentor,
 		int actionDimensions, int populationSize, int planRefinementIters, int burnInIters, int maxPlanLen, double discount, double explore, Random r) {
+		self = agent;
 		transitionModel = transition;
 		observationModel = observation;
 		contentmentModel = contentment;
-		mentor = oracle;
+		mentor = _mentor;
 		rand = r;
-		plans = new ArrayList<Plan>();
+		plans = new ArrayList<Matrix>();
 		if(populationSize < 2)
 			throw new IllegalArgumentException("The population size must be at least 2");
 		refinementIters = populationSize * planRefinementIters;
@@ -46,34 +50,33 @@ public class PlanningSystem {
 		discountFactor = discount;
 		explorationRate = explore;
 		for(int i = 0; i < populationSize; i++) {
-			Plan p = new Plan();
+			Matrix p = new Matrix(0, actionDimensions);
 			for(int j = Math.min(maxPlanLen, rand.nextInt(maxPlanLen) + 2); j > 0; j--) {
 				// Add a random action vector to the end
-				double[] newActions = new double[actionDims];
+				double[] newActions = p.newRow();
 				for(int k = 0; k < actionDims; k++) {
 					newActions[k] = rand.nextDouble();
 				}
-				p.steps.add(newActions);
 			}
 			plans.add(p);
 		}
-		randomPlan = new Plan();
-		randomPlan.steps.add(new double[actionDimensions]);
+		randomPlan = new Matrix(0, actionDimensions);
+		randomPlan.newRow();
 	}
 
 
 	/// Unmarshaling constructor
-	PlanningSystem(JSONObject obj, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor oracle) {
+	PlanningSystem(JSONObject obj, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor _mentor) {
 		transitionModel = transition;
 		observationModel = observation;
 		contentmentModel = contentment;
-		mentor = oracle;
+		mentor = _mentor;
 		rand = r;
 		JSONArray plansArr = (JSONArray)obj.get("plans");
-		plans = new ArrayList<Plan>();
-		Iterator<JSONArray> it = plansArr.iterator();
+		plans = new ArrayList<Matrix>();
+		Iterator<JSONObject> it = plansArr.iterator();
 		while(it.hasNext()) {
-			plans.add(new Plan(it.next()));
+			plans.add(new Matrix(it.next()));
 		}
 		maxPlanLength = ((Long)obj.get("maxPlanLength")).intValue();
 		discountFactor = ((Double)obj.get("discount")).doubleValue();
@@ -81,8 +84,8 @@ public class PlanningSystem {
 		refinementIters = ((Long)obj.get("refinementIters")).intValue();
 		burnIn = ((Long)obj.get("burnIn")).intValue();
 		actionDims = ((Long)obj.get("actionDims")).intValue();
-		randomPlan = new Plan();
-		randomPlan.steps.add(new double[actionDims]);
+		randomPlan = new Matrix(0, actionDims);
+		randomPlan.newRow();
 	}
 
 
@@ -105,8 +108,8 @@ public class PlanningSystem {
 
 
 	/// Replaces the mentor with the specified one
-	void setMentor(IMentor oracle) {
-		mentor = oracle;
+	void setMentor(IMentor _mentor) {
+		mentor = _mentor;
 	}
 
 
@@ -125,35 +128,34 @@ public class PlanningSystem {
 	/// Perturbs a random plan
 	void mutate() {
 		double d = rand.nextDouble();
-		Plan p = plans.get(rand.nextInt(plans.size()));
+		Matrix p = plans.get(rand.nextInt(plans.size()));
 		if(d < 0.1) { // lengthen the plan
-			if(p.size() < maxPlanLength) {
-				double[] newActions = new double[actionDims];
+			if(p.rows() < maxPlanLength) {
+				double[] newActions = p.insertRow(rand.nextInt(p.rows() + 1));
 				for(int i = 0; i < actionDims; i++) {
 					newActions[i] = rand.nextDouble();
 				}
-				p.steps.add(rand.nextInt(p.size() + 1), newActions);
 			}
 		}
 		else if(d < 0.2) { // shorten the plan
-			if(p.size() > 1) {
-				p.steps.remove(rand.nextInt(p.size()));
+			if(p.rows() > 1) {
+				p.removeRow(rand.nextInt(p.rows()));
 			}
 		}
 		else if(d < 0.7) { // perturb a single element of an action vector
-			double[] actions = p.getActions(rand.nextInt(p.size()));
+			double[] actions = p.row(rand.nextInt(p.rows()));
 			int i = rand.nextInt(actions.length);
 				actions[i] = Math.max(0.0, Math.min(1.0, actions[i] + 0.03 * rand.nextGaussian()));
 		}
 		else if(d < 0.9) { // perturb a whole action vector
-			double[] actions = p.getActions(rand.nextInt(p.size()));
+			double[] actions = p.row(rand.nextInt(p.rows()));
 			for(int i = 0; i < actions.length; i++) {
 				actions[i] = Math.max(0.0, Math.min(1.0, actions[i] + 0.02 * rand.nextGaussian()));
 			}
 		}
 		else { // perturb the whole plan
-			for(int j = 0; j < p.size(); j++) {
-				double[] actions = p.getActions(j);
+			for(int j = 0; j < p.rows(); j++) {
+				double[] actions = p.row(j);
 				for(int i = 0; i < actions.length; i++) {
 					actions[i] = Math.max(0.0, Math.min(1.0, actions[i] + 0.01 * rand.nextGaussian()));
 				}
@@ -167,33 +169,32 @@ public class PlanningSystem {
 		double d = rand.nextDouble();
 		if(d < 0.2) {
 			// Clone a random parent (asexual reproduction)
-			plans.set(childIndex, new Plan(plans.get(rand.nextInt(plans.size()))));
+			plans.set(childIndex, new Matrix(plans.get(rand.nextInt(plans.size()))));
 		} else if(d < 0.7) {
 			// Cross-over (sexual reproduction)
-			Plan mother = plans.get(rand.nextInt(plans.size()));
-			Plan father = plans.get(rand.nextInt(plans.size()));
-			int crossOverPoint = rand.nextInt(mother.size());
-			Plan child = new Plan();
+			Matrix mother = plans.get(rand.nextInt(plans.size()));
+			Matrix father = plans.get(rand.nextInt(plans.size()));
+			int crossOverPoint = rand.nextInt(mother.rows());
+			Matrix child = new Matrix(0, actionDims);
 			for(int i = 0; i < crossOverPoint; i++)
-				child.steps.add(Vec.copy(mother.getActions(i)));
-			for(int i = crossOverPoint; i < father.size(); i++)
-				child.steps.add(Vec.copy(father.getActions(i)));
+				Vec.copy(child.newRow(), mother.row(i));
+			for(int i = crossOverPoint; i < father.rows(); i++)
+				Vec.copy(child.newRow(), father.row(i));
 			plans.set(childIndex, child);		
 		} else {
 			// Interpolation/extrapolation
-			Plan mother = plans.get(rand.nextInt(plans.size()));
-			Plan father = plans.get(rand.nextInt(plans.size()));
-			int len = Math.min(mother.size(), father.size());
-			Plan child = new Plan();
+			Matrix mother = plans.get(rand.nextInt(plans.size()));
+			Matrix father = plans.get(rand.nextInt(plans.size()));
+			int len = Math.min(mother.rows(), father.rows());
+			Matrix child = new Matrix(0, actionDims);
 			double alpha = rand.nextDouble() * 2.0;
 			for(int i = 0; i < len; i++) {
-				double[] a = mother.getActions(i);
-				double[] b = father.getActions(i);
-				double[] c = new double[a.length];
+				double[] a = mother.row(i);
+				double[] b = father.row(i);
+				double[] c = child.newRow();
 				for(int j = 0; j < c.length; j++) {
 					c[j] = Math.max(0.0, Math.min(1.0, alpha * a[j] + (1.0 - alpha) * b[j]));
 				}
-				child.steps.add(c);
 			}
 			plans.set(childIndex, child);
 		}
@@ -201,8 +202,8 @@ public class PlanningSystem {
 
 
 	/// Returns the expected contentment at the end of the plan
-	double evaluatePlan(double[] beliefs, Plan plan) {
-		return contentmentModel.evaluate(transitionModel.getFinalBeliefs(beliefs, plan)) * Math.pow(discountFactor, plan.steps.size());
+	double evaluatePlan(double[] beliefs, Matrix plan) {
+		return contentmentModel.evaluate(transitionModel.getFinalBeliefs(beliefs, plan)) * Math.pow(discountFactor, plan.rows());
 	}
 
 
@@ -247,25 +248,27 @@ public class PlanningSystem {
 	/// Drops the first action in every plan
 	void advanceTime() {
 		for(int i = 0; i < plans.size(); i++) {
-			Plan p = plans.get(i);
-			if(p.steps.size() > 0)
+			Matrix p = plans.get(i);
+			if(p.rows() > 0)
 			{
 				// Move the first action vector in each plan to the end
-				double[] tmp = p.steps.get(0);
-				p.steps.remove(0);
-				p.steps.add(tmp);
+				double[] tmp = p.removeRow(0);
+				p.takeRow(tmp);
 			}
 		}
 	}
 
 
 	/// Asks the mentor to evaluate the plan, given our current beliefs, and learn from it
-	void askMentorToEvaluatePlan(double[] beliefs, Plan plan) {
-		double[] anticipatedBeliefs = transitionModel.getFinalBeliefs(beliefs, plan);
-		double[] anticipatedObs = observationModel.beliefsToObservations(anticipatedBeliefs);
-		double feedback = mentor.evaluate(anticipatedObs);
+	void askMentorToEvaluatePlan(double[] beliefs, Matrix plan) {
+		double feedback = mentor.evaluatePlan(self, plan);
+		if(feedback < -1.0 || feedback > 1.0)
+			throw new IllegalArgumentException("The mentor returned an evaluation that was out of range.");
 		if(feedback != IMentor.NO_FEEDBACK)
+		{
+			double[] anticipatedBeliefs = transitionModel.getFinalBeliefs(beliefs, plan);
 			contentmentModel.trainIncremental(anticipatedBeliefs, feedback);
+		}
 	}
 
 
@@ -288,7 +291,7 @@ public class PlanningSystem {
 			}
 		}
 		//System.out.println("Best contentment: " + Double.toString(bestContentment));
-		Plan bestPlan = plans.get(planBestIndex);
+		Matrix bestPlan = plans.get(planBestIndex);
 		askMentorToEvaluatePlan(beliefs, bestPlan);
 
 		// Pick a random plan from the population and ask the mentor to evaluate it (for contrast)
@@ -298,15 +301,15 @@ public class PlanningSystem {
 		askMentorToEvaluatePlan(beliefs, plans.get(planBindex));
 
 		// Make a random one-step plan, and ask the mentor to evaluate it (for contrast)
-		double[] action = randomPlan.steps.get(0);
+		double[] action = randomPlan.row(0);
 		for(int i = 0; i < action.length; i++)
 			action[i] = rand.nextDouble();
 		askMentorToEvaluatePlan(beliefs, randomPlan);
 
 		// Copy the first action vector of the best plan for our chosen action
-		double[] bestActions = bestPlan.getActions(0);
+		double[] bestActions = bestPlan.row(0);
 		if(burnIn > 0 || rand.nextDouble() < explorationRate)
-			bestActions = randomPlan.getActions(0);
+			bestActions = randomPlan.row(0);
 		burnIn = Math.max(0, burnIn - 1);
 		for(int i = 0; i < bestActions.length; i++) {
 			actions[i] = bestActions[i];

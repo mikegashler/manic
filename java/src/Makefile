@@ -1,4 +1,5 @@
 build: clean
+	echo;echo;echo;echo;echo;echo
 	javac -d ../class -Xmaxerrs 3 Main.java
 
 clean:

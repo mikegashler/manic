@@ -7,6 +7,7 @@ import common.ITutor;
 import common.json.JSONObject;
 import common.json.JSONArray;
 import common.Vec;
+import common.Matrix;
 
 /// Implements a weak artificial general intelligence.
 public class AgentManic implements IAgent {
@@ -28,12 +29,12 @@ public class AgentManic implements IAgent {
 	public String getName() { return "Manic"; }
 
 	// This method is called to initialize the agent in a new world.
-	// oracle is an object that helps the agent learn what to do in this world.
+	// mentor is an object that helps the agent learn what to do in this world.
 	// observationDims is the number of double values that the agent observes each time step.
 	// beliefDims is the number of double values that the agent uses internally to model the state of the world. (It should generally be <= observationDims.)
 	// actionDims is the number of double values the agent uses to specify an action.
 	// maxPlanLength specifies the maximum number of time-steps into the future that the agent should attempt to plan.
-	public void reset(IMentor oracle, int observationDims, int beliefDims, int actionDims, int maxPlanLength) {
+	public void reset(IMentor mentor, int observationDims, int beliefDims, int actionDims, int maxPlanLength) {
 		if(beliefDims > observationDims)
 			throw new IllegalArgumentException("Expected beliefDims to be <= observationDims");
 		transitionModel = new TransitionModel(
@@ -60,10 +61,11 @@ public class AgentManic implements IAgent {
 			50, // number of training iterations to perform with each new sample
 			rand);
 		planningSystem = new PlanningSystem(
+			this,
 			transitionModel,
 			observationModel,
 			contentmentModel,
-			oracle,
+			mentor,
 			actionDims,
 			30, // population size
 			50, // number of iterations to refine each member of the population per time step
@@ -80,12 +82,12 @@ public class AgentManic implements IAgent {
 
 
 	/// Unmarshaling constructor
-	public AgentManic(JSONObject obj, Random r, IMentor oracle) {
+	public AgentManic(JSONObject obj, Random r, IMentor mentor) {
 		rand = r;
 		transitionModel = new TransitionModel((JSONObject)obj.get("transition"), r);
 		observationModel = new ObservationModel(transitionModel, (JSONObject)obj.get("observation"), r);
 		contentmentModel = new ContentmentModel((JSONObject)obj.get("contentment"), r);
-		planningSystem = new PlanningSystem((JSONObject)obj.get("planning"), r, transitionModel, observationModel, contentmentModel, oracle);
+		planningSystem = new PlanningSystem((JSONObject)obj.get("planning"), r, transitionModel, observationModel, contentmentModel, mentor);
 		actions = new double[transitionModel.actionDims()];
 		beliefs = Vec.unmarshal((JSONArray)obj.get("beliefs"));
 		anticipatedBeliefs = new double[beliefs.length];
@@ -105,8 +107,8 @@ public class AgentManic implements IAgent {
 
 
 	/// Replaces the mentor with the specified one
-	public void setMentor(IMentor oracle) {
-		planningSystem.setMentor(oracle);
+	public void setMentor(IMentor mentor) {
+		planningSystem.setMentor(mentor);
 	}
 
 
@@ -164,6 +166,15 @@ public class AgentManic implements IAgent {
 
 		// Return the selected actions
 		return actions;
+	}
+
+
+	/// Anticipates what this agent will observe if the specified plan is performed.
+	public double[] anticipateObservation(Matrix plan)
+	{
+		double[] anticipatedBeliefs = transitionModel.getFinalBeliefs(beliefs, plan);
+		double[] anticipatedObs = observationModel.beliefsToObservations(anticipatedBeliefs);
+		return anticipatedObs;
 	}
 
 
