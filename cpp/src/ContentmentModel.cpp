@@ -89,7 +89,7 @@ void ContentmentModel::trainIncremental(const GVec& sample_beliefs, double sampl
 	GVec& dest = samples.row(trainPos);
 	if(sample_beliefs.size() != dest.size())
 		throw Ex("size mismatch");
-	dest = sample_beliefs;
+	dest.copy(sample_beliefs);
 	contentment.row(trainPos)[0] = sample_contentment;
 	trainPos++;
 	trainSize = std::max(trainSize, trainPos);

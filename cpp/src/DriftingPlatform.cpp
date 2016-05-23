@@ -119,7 +119,7 @@ double DriftingPlatform::test(Agent& agent)
 		tutor.state_to_observations(state, obs);
 		GVec& act = agent.think(obs);
 		tutor.transition(state, act, next_state);
-		state = next_state;
+		state.copy(next_state);
 	}
 	//if(agent.getName().compare("manic") == 0)
 	//	visualizeContentment(*(AgentManic*)&agent);
@@ -155,7 +155,7 @@ double DriftingPlatform::test(Agent& agent)
 		tutor.state_to_observations(state, obs);
 		GVec& act = agent.think(obs);
 		tutor.transition(state, act, next_state);
-		state = next_state;
+		state.copy(next_state);
 	}
 
 	// Test
@@ -187,7 +187,7 @@ double DriftingPlatform::test(Agent& agent)
 		tutor.state_to_observations(state, obs);
 		GVec& act = agent.think(obs);
 		tutor.transition(state, act, next_state);
-		state = next_state;
+		state.copy(next_state);
 
 		// Sum up how far the agent ever drifts from the origin
 		sumSqMag += std::sqrt(state.squaredMagnitude());

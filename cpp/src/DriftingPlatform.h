@@ -52,12 +52,12 @@ public:
 	virtual void state_to_observations(const GClasses::GVec& state, GClasses::GVec& observations)
 	{
 		observations.put(0, state, 0, state.size());
-		observations.fill(0.0, state.size(), observations.size() - state.size());
+		observations.fill(0.0, state.size(), observations.size());
 	}
 
 	virtual void transition(const GClasses::GVec& current_state, const GClasses::GVec& actions, GClasses::GVec& next_state)
 	{
-		next_state = current_state;
+		next_state.copy(current_state);
 		double angle = actions[0] * 2.0 * M_PI + controlOrigin;
 		next_state[0] += stepSize * std::cos(angle);
 		next_state[1] += stepSize * std::sin(angle);
