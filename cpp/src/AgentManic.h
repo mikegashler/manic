@@ -25,12 +25,13 @@ public:
 	GVec actions;
 	GVec beliefs;
 	GVec anticipatedBeliefs;
+	GVec buf;
 
 
 	// General-purpose constructor.
 	AgentManic(GRand& r);
 
-	~AgentManic();
+	virtual ~AgentManic();
 
 	string getName() { return "Manic"; }
 
@@ -58,6 +59,9 @@ public:
 
 	/// Returns an action vector
 	GVec& decideWhatToDo();
+
+	/// Returns the observation that would be expected after performing the plan.
+	virtual void anticipateObservation(const GMatrix& plan, GVec& obs);
 
 	/// A vector of observations goes in. All observed values may be expected to fall between -1 and 1.
 	/// Returns a vector of chosen actions. All returned values should fall between 0 and 1.

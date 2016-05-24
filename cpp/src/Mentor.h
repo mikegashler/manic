@@ -3,20 +3,21 @@
 
 #include <GClasses/GVec.h>
 
+class Agent;
 
 /// Helps the agent learn what it should want to do.
 /// Does not tell the agent how to do anything.
 class Mentor
 {
 public:
-	/// Implementations should evaluate the goodness of the anticipated observation.
-	/// return 1 for the best possible observation.
-	/// return 0 for the worst possible observation.
+	/// Implementations should evaluate the goodness of the plan.
+	/// return 1 for the best possible plan.
+	/// return 0 for the worst possible plan.
 	/// return a value between 0 and 1 for observations that are neither the worst nor best.
 	/// return UNKNOWN_REAL_VALUE if the mentor cannot determine the goodness of the anticpated observation,
 	///         or if the mentor is not available, or if the mentor wants to test the agent by letting
 	///         it decide for itself.
-	virtual double evaluate(const GClasses::GVec& anticipatedObservations) = 0;
+	virtual double evaluatePlan(Agent& agent, const GClasses::GMatrix& plan) = 0;
 };
 
 

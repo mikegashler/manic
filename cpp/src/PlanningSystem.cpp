@@ -4,9 +4,10 @@
 using std::cout;
 
 // General-purpose constructor
-PlanningSystem::PlanningSystem(TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle,
+PlanningSystem::PlanningSystem(Agent& agent, TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle,
 	size_t actionDimensions, size_t populationSize, size_t planRefinementIters, size_t burnInIters, size_t maxPlanLen, double discount, double explore, GRand& r)
-: transitionModel(transition),
+: self(agent),
+transitionModel(transition),
 observationModel(observation),
 contentmentModel(contentment),
 mentor(oracle),
@@ -36,8 +37,9 @@ randomPlan(1, actionDims)
 
 
 /// Unmarshaling constructor
-PlanningSystem::PlanningSystem(GDomNode* pNode, GRand& r, TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle)
-: transitionModel(transition),
+PlanningSystem::PlanningSystem(GDomNode* pNode, Agent& agent, GRand& r, TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle)
+: self(agent),
+transitionModel(transition),
 observationModel(observation),
 contentmentModel(contentment),
 mentor(oracle),
@@ -267,7 +269,7 @@ void PlanningSystem::askMentorToEvaluatePlan(const GVec& beliefs, GMatrix& plan)
 {
 	transitionModel.getFinalBeliefs(beliefs, plan, buf);
 	observationModel.beliefsToObservations(buf, buf2);
-	double feedback = mentor->evaluate(buf2);
+	double feedback = mentor->evaluatePlan(self, plan);
 	if(feedback != UNKNOWN_REAL_VALUE)
 		contentmentModel.trainIncremental(buf, feedback);
 }

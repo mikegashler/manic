@@ -5,6 +5,7 @@ AgentManic::AgentManic(GRand& r)
 {
 }
 
+// virtual
 AgentManic::~AgentManic()
 {
 	delete(transitionModel);
@@ -42,6 +43,7 @@ void AgentManic::reset(Mentor& oracle, size_t observationDims, size_t beliefDims
 		50, // number of training iterations to perform with each new sample
 		rand);
 	planningSystem = new PlanningSystem(
+		*this,
 		*transitionModel,
 		*observationModel,
 		*contentmentModel,
@@ -70,7 +72,7 @@ AgentManic::AgentManic(GDomNode* pNode, GRand& r, Mentor& oracle)
 	transitionModel = new TransitionModel(pNode->field("transition"), r);
 	observationModel = new ObservationModel(*transitionModel, pNode->field("observation"), r);
 	contentmentModel = new ContentmentModel(pNode->field("contentment"), r);
-	planningSystem = new PlanningSystem(pNode->field("planning"), r, *transitionModel, *observationModel, *contentmentModel, &oracle);
+	planningSystem = new PlanningSystem(pNode->field("planning"), *this, r, *transitionModel, *observationModel, *contentmentModel, &oracle);
 	actions.resize(transitionModel->actionDims());
 	beliefs.deserialize(pNode->field("beliefs"));
 	anticipatedBeliefs.resize(beliefs.size());
@@ -128,8 +130,7 @@ void AgentManic::learnFromExperience(GVec& observations)
 GVec& AgentManic::decideWhatToDo()
 {
 	// Make the anticipated beliefs the new beliefs
-	for(size_t i = 0; i < beliefs.size(); i++)
-		std::swap(beliefs[i], anticipatedBeliefs[i]);
+	beliefs.swapContents(anticipatedBeliefs);
 
 	// Drop the first action in every plan
 	planningSystem->advanceTime();
@@ -145,6 +146,14 @@ GVec& AgentManic::decideWhatToDo()
 
 	// Return the selected actions
 	return actions;
+}
+
+
+// virtual
+void AgentManic::anticipateObservation(const GMatrix& plan, GVec& obs)
+{
+	transitionModel->getFinalBeliefs(beliefs, plan, buf);
+	observationModel->beliefsToObservations(buf, obs);
 }
 
 

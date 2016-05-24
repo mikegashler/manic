@@ -87,7 +87,7 @@ public class AgentManic implements IAgent {
 		transitionModel = new TransitionModel((JSONObject)obj.get("transition"), r);
 		observationModel = new ObservationModel(transitionModel, (JSONObject)obj.get("observation"), r);
 		contentmentModel = new ContentmentModel((JSONObject)obj.get("contentment"), r);
-		planningSystem = new PlanningSystem((JSONObject)obj.get("planning"), r, transitionModel, observationModel, contentmentModel, mentor);
+		planningSystem = new PlanningSystem((JSONObject)obj.get("planning"), this, r, transitionModel, observationModel, contentmentModel, mentor);
 		actions = new double[transitionModel.actionDims()];
 		beliefs = Vec.unmarshal((JSONArray)obj.get("beliefs"));
 		anticipatedBeliefs = new double[beliefs.length];

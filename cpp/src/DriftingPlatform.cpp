@@ -5,6 +5,61 @@
 //#include "GClasses/GImage.h"
 
 using std::cout;
+
+
+
+
+
+// virtual
+void DriftingPlatformTutor::observations_to_state(const GClasses::GVec& observations, GClasses::GVec& state)
+{
+	state.put(0, observations, 0, state.size());
+}
+
+// virtual
+void DriftingPlatformTutor::state_to_observations(const GClasses::GVec& state, GClasses::GVec& observations)
+{
+	world.computeObservations(state, observations);
+}
+
+// virtual
+void DriftingPlatformTutor::transition(const GClasses::GVec& current_state, const GClasses::GVec& actions, GClasses::GVec& next_state)
+{
+	world.computeNextState(current_state, actions, next_state);
+}
+
+// virtual
+double DriftingPlatformTutor::evaluate_state(const GClasses::GVec& state)
+{
+	state_to_observations(state, obs);
+	bool oldActive = mentor.active;
+	mentor.active = true;
+	double utility = mentor.evaluateObservation(obs);
+	mentor.active = oldActive;
+	return utility;
+}
+
+// virtual
+void DriftingPlatformTutor::choose_actions(const GClasses::GVec& state, GClasses::GVec& actions)
+{
+	double theta = atan2(state[1], state[0]);
+	theta -= world.controlOrigin;
+	theta += M_PI;
+	theta /= (2.0 * M_PI);
+	while(theta < 0.0)
+		theta += 1.0;
+	while(theta > 1.0)
+		theta -= 1.0;
+	actions[0] = theta;
+}
+
+
+
+
+
+
+
+
 /*
 void visualizeContentment(AgentManic& agent)
 {
@@ -86,10 +141,10 @@ double DriftingPlatform::test(Agent& agent)
 		2, // the agent models state with 2 dimensions because it cannot be simplified further
 		1, // The agent chooses a direction for travel
 		1); // The agent plans up to 10 time-steps into the future
-	DriftingPlatformTutor tutor(mentor);
 
 	// To debug an agent that isn't working, uncomment the following line and verify that it works.
 	// Then, set each "true" to "false" until you find the component that isn't doing its job properly.
+	//DriftingPlatformTutor tutor(mentor);
 	//agent.setTutor(&tutor, false/*observation*/, false/*transition*/, false/*contentment*/, false/*planning*/);
 
 	// Train with mentor
@@ -116,9 +171,9 @@ double DriftingPlatform::test(Agent& agent)
 		state.clip(-1.0, 1.0);
 
 		// The agent takes a step in a direction of its choice
-		tutor.state_to_observations(state, obs);
+		computeObservations(state, obs);
 		GVec& act = agent.think(obs);
-		tutor.transition(state, act, next_state);
+		computeNextState(state, act, next_state);
 		state.copy(next_state);
 	}
 	//if(agent.getName().compare("manic") == 0)
@@ -130,7 +185,7 @@ double DriftingPlatform::test(Agent& agent)
 	cout << "Also, to make the problem more challenging, the agent's controls " <<
 			"are changed by 120 degrees. The agent will now have to figure out how to operate " <<
 			"the new controls without a mentor to help it.\n";
-	tutor.controlOrigin += M_PI * 2.0 / 3.0;
+	controlOrigin += M_PI * 2.0 / 3.0;
 
 	// Train without mentor
 	cout << "Phase 2 of 3: Unsupervised learning...\n";
@@ -152,9 +207,9 @@ double DriftingPlatform::test(Agent& agent)
 		state.clip(-1.0, 1.0);
 
 		// The agent takes a step in a direction of its choice
-		tutor.state_to_observations(state, obs);
+		computeObservations(state, obs);
 		GVec& act = agent.think(obs);
-		tutor.transition(state, act, next_state);
+		computeNextState(state, act, next_state);
 		state.copy(next_state);
 	}
 
@@ -184,9 +239,9 @@ double DriftingPlatform::test(Agent& agent)
 		state.clip(-1.0, 1.0);
 
 		// The agent takes a step in a direction of its choice
-		tutor.state_to_observations(state, obs);
+		computeObservations(state, obs);
 		GVec& act = agent.think(obs);
-		tutor.transition(state, act, next_state);
+		computeNextState(state, act, next_state);
 		state.copy(next_state);
 
 		// Sum up how far the agent ever drifts from the origin

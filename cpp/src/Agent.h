@@ -13,6 +13,8 @@ class Tutor;
 class Agent
 {
 public:
+	Agent() {}
+
 	virtual ~Agent() {}
 
 	/// Returns this agent's name
@@ -36,6 +38,9 @@ public:
 
 	/// Sets the tutor to use with this agent.
 	virtual void setTutor(Tutor* tutor, bool helpWithObservations, bool helpWithTransitions, bool helpWithContentment, bool helpWithPlanning) = 0;
+
+	/// Predict the observation that will occur if plan is executed.
+	virtual void anticipateObservation(const GMatrix& plan, GVec& obs) = 0;
 
 	/// A vector of observations goes in. All observed values may be expected to fall between -1 and 1.
 	/// Returns a vector of chosen actions. All returned values should fall between 0 and 1.

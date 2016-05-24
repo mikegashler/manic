@@ -17,8 +17,8 @@ err(0.0)
 	// Init the model
 	rand = r;
 	int hidden = std::min((size_t)30, beliefDims * 10);
-	model.addLayer(new GLayerClassic(beliefDims, hidden, new GActivationBend()));
-	model.addLayer(new GLayerClassic(hidden, 1, new GActivationBend()));
+	model.addLayer(new GLayerClassic(beliefDims, hidden, new GActivationBentIdentity()));
+	model.addLayer(new GLayerClassic(hidden, 1, new GActivationBentIdentity()));
 	GUniformRelation relIn(beliefDims);
 	GUniformRelation relOut(1);
 	model.beginIncrementalLearning(relIn, relOut);

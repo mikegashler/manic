@@ -15,12 +15,13 @@ class AgentRandy : public Agent
 public:
 	GRand& rand;
 	GVec actions;
+	GVec recent_obs;
 
 
 	// General-purpose constructor.
 	AgentRandy(GRand& r);
 
-	~AgentRandy();
+	virtual ~AgentRandy();
 
 	string getName() { return "Randy"; }
 
@@ -37,6 +38,8 @@ public:
 	virtual void setTutor(Tutor* tutor, bool helpObservationFunction, bool helpTransitionFunction, bool helpContentmentModel, bool helpPlanningSystem);
 
 	virtual void teleport();
+
+	virtual void anticipateObservation(const GMatrix& plan, GVec& obs);
 
 	virtual GVec& think(GVec& observations);
 };

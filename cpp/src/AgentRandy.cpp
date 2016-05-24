@@ -5,6 +5,7 @@ AgentRandy::AgentRandy(GRand& r)
 {
 }
 
+// virtual
 AgentRandy::~AgentRandy()
 {
 }
@@ -50,8 +51,16 @@ void AgentRandy::teleport()
 
 
 // virtual
+void AgentRandy::anticipateObservation(const GMatrix& plan, GVec& obs)
+{
+	obs.copy(recent_obs);
+}
+
+
+// virtual
 GVec& AgentRandy::think(GVec& observations)
 {
+	recent_obs.copy(observations);
 	actions.fillUniform(rand);
 	return actions;
 }

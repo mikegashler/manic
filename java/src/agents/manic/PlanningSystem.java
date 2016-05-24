@@ -66,7 +66,8 @@ public class PlanningSystem {
 
 
 	/// Unmarshaling constructor
-	PlanningSystem(JSONObject obj, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor _mentor) {
+	PlanningSystem(JSONObject obj, IAgent agent, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor _mentor) {
+		self = agent;
 		transitionModel = transition;
 		observationModel = observation;
 		contentmentModel = contentment;

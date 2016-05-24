@@ -18,6 +18,7 @@ using namespace GClasses;
 class PlanningSystem
 {
 public:
+	Agent& self;
 	std::vector<GMatrix*> plans;
 	TransitionModel& transitionModel;
 	ObservationModel& observationModel;
@@ -37,11 +38,11 @@ public:
 
 
 	// General-purpose constructor
-	PlanningSystem(TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle,
+	PlanningSystem(Agent& agent, TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle,
 		size_t actionDimensions, size_t populationSize, size_t planRefinementIters, size_t burnInIters, size_t maxPlanLen, double discount, double explore, GRand& r);
 
 	/// Unmarshaling constructor
-	PlanningSystem(GDomNode* pNode, GRand& r, TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle);
+	PlanningSystem(GDomNode* pNode, Agent& agent, GRand& r, TransitionModel& transition, ObservationModel& observation, ContentmentModel& contentment, Mentor* oracle);
 
 	~PlanningSystem();
 
