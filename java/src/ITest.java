@@ -1,4 +1,3 @@
-package common;
 
 public interface ITest {
 

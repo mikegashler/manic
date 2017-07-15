@@ -1,4 +1,3 @@
-package common;
 
 /// A mentor helps the agent learn what to do.
 /// It does not help the agent learn how to do anything.

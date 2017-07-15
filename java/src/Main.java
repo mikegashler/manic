@@ -1,11 +1,5 @@
 import java.util.Random;
 import java.util.ArrayList;
-import common.IAgent;
-import common.ITest;
-import common.Matrix;
-import agents.manic.AgentManic;
-import agents.randy.AgentRandy;
-import tests.DriftingPlatform;
 
 public class Main {
 
@@ -32,7 +26,7 @@ public class Main {
 			System.out.print("," + agents.get(i).getName());
 		}
 		System.out.println("]");
-		results.print();
+		System.out.println(results.toString());
 	}
 
 	public static void main(String[] args) throws Exception {

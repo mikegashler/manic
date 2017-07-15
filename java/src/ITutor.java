@@ -1,4 +1,3 @@
-package common;
 
 /// A tutor helps the agent do certain parts of its job.
 /// Using a tutor is typically considered cheating.

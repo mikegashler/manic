@@ -1,11 +1,4 @@
-package agents.randy;
-
 import java.util.Random;
-import common.IAgent;
-import common.IMentor;
-import common.ITutor;
-import common.json.JSONObject;
-import common.Matrix;
 
 
 // A poor agent that just picks random actions
@@ -34,17 +27,17 @@ public class AgentRandy implements IAgent {
 
 
 	/// Unmarshaling constructor
-	public AgentRandy(JSONObject obj, Random r, IMentor mentor) {
+	public AgentRandy(Json obj, Random r, IMentor mentor) {
 		rand = r;
-		int actionDims = ((Long)obj.get("actionDims")).intValue();
+		int actionDims = (int)obj.getLong("actionDims");
 		actions = new double[actionDims];
 	}
 
 
 	/// Marshals this agent to a JSON DOM.
-	public JSONObject marshal() {
-		JSONObject obj = new JSONObject();
-		obj.put("actionDims", actions.length);
+	public Json marshal() {
+		Json obj = Json.newObject();
+		obj.add("actionDims", actions.length);
 		return obj;
 	}
 

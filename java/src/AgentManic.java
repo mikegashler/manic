@@ -1,13 +1,4 @@
-package agents.manic;
-
 import java.util.Random;
-import common.IAgent;
-import common.IMentor;
-import common.ITutor;
-import common.json.JSONObject;
-import common.json.JSONArray;
-import common.Vec;
-import common.Matrix;
 
 /// Implements a weak artificial general intelligence.
 public class AgentManic implements IAgent {
@@ -82,26 +73,26 @@ public class AgentManic implements IAgent {
 
 
 	/// Unmarshaling constructor
-	public AgentManic(JSONObject obj, Random r, IMentor mentor) {
+	public AgentManic(Json obj, Random r, IMentor mentor) {
 		rand = r;
-		transitionModel = new TransitionModel((JSONObject)obj.get("transition"), r);
-		observationModel = new ObservationModel(transitionModel, (JSONObject)obj.get("observation"), r);
-		contentmentModel = new ContentmentModel((JSONObject)obj.get("contentment"), r);
-		planningSystem = new PlanningSystem((JSONObject)obj.get("planning"), this, r, transitionModel, observationModel, contentmentModel, mentor);
+		transitionModel = new TransitionModel(obj.get("transition"), r);
+		observationModel = new ObservationModel(transitionModel, obj.get("observation"), r);
+		contentmentModel = new ContentmentModel(obj.get("contentment"), r);
+		planningSystem = new PlanningSystem(obj.get("planning"), this, r, transitionModel, observationModel, contentmentModel, mentor);
 		actions = new double[transitionModel.actionDims()];
-		beliefs = Vec.unmarshal((JSONArray)obj.get("beliefs"));
+		beliefs = Vec.unmarshal(obj.get("beliefs"));
 		anticipatedBeliefs = new double[beliefs.length];
 	}
 
 
 	/// Marshals this agent to a JSON DOM.
-	public JSONObject marshal() {
-		JSONObject obj = new JSONObject();
-		obj.put("transition", transitionModel.marshal());
-		obj.put("observation", observationModel.marshal());
-		obj.put("contentment", contentmentModel.marshal());
-		obj.put("planning", planningSystem.marshal());
-		obj.put("beliefs", Vec.marshal(beliefs));
+	public Json marshal() {
+		Json obj = Json.newObject();
+		obj.add("transition", transitionModel.marshal());
+		obj.add("observation", observationModel.marshal());
+		obj.add("contentment", contentmentModel.marshal());
+		obj.add("planning", planningSystem.marshal());
+		obj.add("beliefs", Vec.marshal(beliefs));
 		return obj;
 	}
 

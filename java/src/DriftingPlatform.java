@@ -1,11 +1,3 @@
-package tests;
-
-import common.IMentor;
-import common.ITutor;
-import common.IAgent;
-import common.ITest;
-import common.Vec;
-import common.Matrix;
 import java.util.Random;
 import java.awt.image.BufferedImage;
 import java.io.File;

@@ -1,10 +1,4 @@
-package agents.manic;
-
-import common.Matrix;
-import common.json.JSONObject;
-import common.Vec;
 import java.util.Random;
-import common.ITutor;
 
 /// A model that maps from anticipated beliefs to contentment (or utility).
 /// This model is trained by reinforcement from a mentor.
@@ -30,8 +24,10 @@ public class ContentmentModel {
 		rand = r;
 		model = new NeuralNet();
 		int hidden = Math.min(30, beliefDims * 10);
-		model.layers.add(new LayerTanh(beliefDims, hidden));
-		model.layers.add(new LayerTanh(hidden, 1));
+		model.layers.add(new LayerLinear(beliefDims, hidden));
+		model.layers.add(new LayerTanh(hidden));
+		model.layers.add(new LayerLinear(hidden, 1));
+		model.layers.add(new LayerTanh(1));
 		model.init(rand);
 
 		// Init the buffers
@@ -46,33 +42,33 @@ public class ContentmentModel {
 
 
 	/// Unmarshaling constructor
-	ContentmentModel(JSONObject obj, Random r) {
+	ContentmentModel(Json obj, Random r) {
 		rand = r;
-		model = new NeuralNet((JSONObject)obj.get("model"));
-		samples = new Matrix((JSONObject)obj.get("samples"));
-		contentment = new Matrix((JSONObject)obj.get("contentment"));
-		trainPos = ((Long)obj.get("trainPos")).intValue();
-		trainSize = ((Long)obj.get("trainSize")).intValue();
-		trainIters = ((Long)obj.get("trainIters")).intValue();
-		learningRate = (Double)obj.get("learningRate");
-		trainProgress = ((Long)obj.get("trainProgress")).intValue();
-		err = (Double)obj.get("err");
+		model = new NeuralNet(obj.get("model"));
+		samples = new Matrix(obj.get("samples"));
+		contentment = new Matrix(obj.get("contentment"));
+		trainPos = (int)obj.getLong("trainPos");
+		trainSize = (int)obj.getLong("trainSize");
+		trainIters = (int)obj.getLong("trainIters");
+		learningRate = obj.getDouble("learningRate");
+		trainProgress = (int)obj.getLong("trainProgress");
+		err = obj.getDouble("err");
 		targBuf = new double[1];
 	}
 
 
 	/// Marshals this model to a JSON DOM.
-	JSONObject marshal() {
-		JSONObject obj = new JSONObject();
-		obj.put("model", model.marshal());
-		obj.put("samples", samples.marshal());
-		obj.put("contentment", contentment.marshal());
-		obj.put("trainPos", trainPos);
-		obj.put("trainSize", trainSize);
-		obj.put("trainIters", trainIters);
-		obj.put("learningRate", learningRate);
-		obj.put("trainProgress", trainProgress);
-		obj.put("err", err);
+	Json marshal() {
+		Json obj = Json.newObject();
+		obj.add("model", model.marshal());
+		obj.add("samples", samples.marshal());
+		obj.add("contentment", contentment.marshal());
+		obj.add("trainPos", trainPos);
+		obj.add("trainSize", trainSize);
+		obj.add("trainIters", trainIters);
+		obj.add("learningRate", learningRate);
+		obj.add("trainProgress", trainProgress);
+		obj.add("err", err);
 		return obj;
 	}
 
@@ -87,7 +83,7 @@ public class ContentmentModel {
 
 		// Present a sample of beliefs and corresponding contentment for training
 		int index = rand.nextInt(trainSize);
-		model.regularize(learningRate, 0.000001);
+		model.regularize(learningRate * 0.000001);
 		model.trainIncremental(samples.row(index), contentment.row(index), learningRate);
 		err += Vec.squaredDistance(model.layers.get(model.layers.size() - 1).activation, contentment.row(index));
 		if(++trainProgress >= 1000) {

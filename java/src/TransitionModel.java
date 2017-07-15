@@ -1,11 +1,4 @@
-package agents.manic;
-
 import java.util.Random;
-import common.Matrix;
-import common.Vec;
-import common.json.JSONObject;
-import common.ITutor;
-import common.Matrix;
 
 /// A model that maps from current beliefs and actions to anticipated beliefs.
 /// This model is trained in a supervised manner.
@@ -31,8 +24,10 @@ public class TransitionModel {
 		rand = r;
 		model = new NeuralNet();
 		int hidden = Math.max(30, output_dims);
-		model.layers.add(new LayerTanh(input_dims, hidden));
-		model.layers.add(new LayerTanh(hidden, output_dims));
+		model.layers.add(new LayerLinear(input_dims, hidden));
+		model.layers.add(new LayerTanh(hidden));
+		model.layers.add(new LayerLinear(hidden, output_dims));
+		model.layers.add(new LayerTanh(output_dims));
 		model.init(rand);
 
 		// Init the buffers
@@ -46,34 +41,34 @@ public class TransitionModel {
 
 
 	/// Unmarshaling constructor
-	TransitionModel(JSONObject obj, Random r) {
+	TransitionModel(Json obj, Random r) {
 		rand = r;
-		model = new NeuralNet((JSONObject)obj.get("model"));
-		trainInput = new Matrix((JSONObject)obj.get("trainInput"));
-		trainOutput = new Matrix((JSONObject)obj.get("trainOutput"));
-		trainPos = ((Long)obj.get("trainPos")).intValue();
-		trainSize = ((Long)obj.get("trainSize")).intValue();
-		trainIters = ((Long)obj.get("trainIters")).intValue();
-		trainProgress = ((Long)obj.get("trainProgress")).intValue();
-		learningRate = (Double)obj.get("learningRate");
-		err = (Double)obj.get("err");
-		prevErr = (Double)obj.get("prevErr");
+		model = new NeuralNet(obj.get("model"));
+		trainInput = new Matrix(obj.get("trainInput"));
+		trainOutput = new Matrix(obj.get("trainOutput"));
+		trainPos = (int)obj.getLong("trainPos");
+		trainSize = (int)obj.getLong("trainSize");
+		trainIters = (int)obj.getLong("trainIters");
+		trainProgress = (int)obj.getLong("trainProgress");
+		learningRate = obj.getDouble("learningRate");
+		err = obj.getDouble("err");
+		prevErr = obj.getDouble("prevErr");
 	}
 
 
 	/// Marshals this model to a JSON DOM.
-	JSONObject marshal() {
-		JSONObject obj = new JSONObject();
-		obj.put("model", model.marshal());
-		obj.put("trainInput", trainInput.marshal());
-		obj.put("trainOutput", trainOutput.marshal());
-		obj.put("trainPos", trainPos);
-		obj.put("trainSize", trainSize);
-		obj.put("trainIters", trainIters);
-		obj.put("trainProgress", trainProgress);
-		obj.put("learningRate", learningRate);
-		obj.put("err", err);
-		obj.put("prevErr", prevErr);
+	Json marshal() {
+		Json obj = Json.newObject();
+		obj.add("model", model.marshal());
+		obj.add("trainInput", trainInput.marshal());
+		obj.add("trainOutput", trainOutput.marshal());
+		obj.add("trainPos", trainPos);
+		obj.add("trainSize", trainSize);
+		obj.add("trainIters", trainIters);
+		obj.add("trainProgress", trainProgress);
+		obj.add("learningRate", learningRate);
+		obj.add("err", err);
+		obj.add("prevErr", prevErr);
 		return obj;
 	}
 
@@ -91,7 +86,7 @@ public class TransitionModel {
 	void doSomeTraining() {
 
 		// Present one pattern
-		model.regularize(learningRate, 0.0000001);
+		model.regularize(learningRate * 0.0000001);
 		int index = rand.nextInt(trainSize);
 		model.trainIncremental(trainInput.row(index), trainOutput.row(index), learningRate);
 		err += Vec.squaredDistance(model.layers.get(model.layers.size() - 1).activation, trainOutput.row(index));

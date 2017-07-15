@@ -1,15 +1,6 @@
-package agents.manic;
-
 import java.util.Random;
 import java.util.ArrayList;
 import java.util.Iterator;
-import common.Vec;
-import common.json.JSONObject;
-import common.json.JSONArray;
-import common.IMentor;
-import common.IAgent;
-import common.ITutor;
-import common.Matrix;
 
 
 /// A genetic algorithm that sequences actions to form a plan intended to maximize contentment.
@@ -66,44 +57,45 @@ public class PlanningSystem {
 
 
 	/// Unmarshaling constructor
-	PlanningSystem(JSONObject obj, IAgent agent, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor _mentor) {
+	PlanningSystem(Json obj, IAgent agent, Random r, TransitionModel transition, ObservationModel observation, ContentmentModel contentment, IMentor _mentor) {
 		self = agent;
 		transitionModel = transition;
 		observationModel = observation;
 		contentmentModel = contentment;
 		mentor = _mentor;
 		rand = r;
-		JSONArray plansArr = (JSONArray)obj.get("plans");
+		Json plansArr = obj.get("plans");
 		plans = new ArrayList<Matrix>();
-		Iterator<JSONObject> it = plansArr.iterator();
-		while(it.hasNext()) {
-			plans.add(new Matrix(it.next()));
+		for(int i = 0; i < plansArr.size(); i++)
+		{
+			plans.add(new Matrix(plansArr.get(i)));
 		}
-		maxPlanLength = ((Long)obj.get("maxPlanLength")).intValue();
-		discountFactor = ((Double)obj.get("discount")).doubleValue();
-		explorationRate = ((Double)obj.get("explore")).doubleValue();
-		refinementIters = ((Long)obj.get("refinementIters")).intValue();
-		burnIn = ((Long)obj.get("burnIn")).intValue();
-		actionDims = ((Long)obj.get("actionDims")).intValue();
+		maxPlanLength = (int)obj.getLong("maxPlanLength");
+		discountFactor = obj.getDouble("discount");
+		explorationRate = obj.getDouble("explore");
+		refinementIters = (int)obj.getLong("refinementIters");
+		burnIn = (int)obj.getLong("burnIn");
+		actionDims = (int)obj.getLong("actionDims");
 		randomPlan = new Matrix(0, actionDims);
 		randomPlan.newRow();
 	}
 
 
 	/// Marshals this model to a JSON DOM.
-	JSONObject marshal() {
-		JSONObject obj = new JSONObject();
-		JSONArray plansArr = new JSONArray();
-		for(int i = 0; i < plans.size(); i++) {
+	Json marshal() {
+		Json obj = Json.newObject();
+		Json plansArr = Json.newList();
+		for(int i = 0; i < plans.size(); i++)
+		{
 			plansArr.add(plans.get(i).marshal());
 		}
-		obj.put("plans", plansArr);
-		obj.put("maxPlanLength", maxPlanLength);
-		obj.put("discount", discountFactor);
-		obj.put("explore", explorationRate);
-		obj.put("refinementIters", refinementIters);
-		obj.put("burnIn", burnIn);
-		obj.put("actionDims", actionDims);
+		obj.add("plans", plansArr);
+		obj.add("maxPlanLength", maxPlanLength);
+		obj.add("discount", discountFactor);
+		obj.add("explore", explorationRate);
+		obj.add("refinementIters", refinementIters);
+		obj.add("burnIn", burnIn);
+		obj.add("actionDims", actionDims);
 		return obj;
 	}
 
@@ -122,7 +114,7 @@ public class PlanningSystem {
 	/// Prints a representation of all the plans to stdout
 	void printPlans() {
 		for(int i = 0; i < plans.size(); i++)
-			plans.get(i).print();
+			System.out.println(plans.get(i).toString());
 	}
 
 

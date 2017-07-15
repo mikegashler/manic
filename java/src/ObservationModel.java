@@ -1,10 +1,4 @@
-package agents.manic;
-
-import common.Matrix;
-import common.json.JSONObject;
 import java.util.Random;
-import common.ITutor;
-import common.Vec;
 
 /// A bidirectional model that maps between beliefs and observations.
 /// Mapping from observations to beliefs is done by the encoder.
@@ -41,14 +35,18 @@ public class ObservationModel {
 		rand = r;
 		int hidden = Math.max(30, (observation_dims + belief_dims) / 2);
 		encoder = new NeuralNet();
-		encoder.layers.add(new LayerTanh(observation_dims, hidden));
-		encoder.layers.add(new LayerTanh(hidden, belief_dims));
+		encoder.layers.add(new LayerLinear(observation_dims, hidden));
+		encoder.layers.add(new LayerTanh(hidden));
+		encoder.layers.add(new LayerLinear(hidden, belief_dims));
+		encoder.layers.add(new LayerTanh(belief_dims));
 		encoder.init(rand);
 
 		// Init the decoder
 		decoder = new NeuralNet();
-		decoder.layers.add(new LayerTanh(belief_dims, hidden));
-		decoder.layers.add(new LayerTanh(hidden, observation_dims));
+		decoder.layers.add(new LayerLinear(belief_dims, hidden));
+		decoder.layers.add(new LayerTanh(hidden));
+		decoder.layers.add(new LayerLinear(hidden, observation_dims));
+		decoder.layers.add(new LayerTanh(observation_dims));
 		decoder.init(rand);
 
 		// Make the experimental nets
@@ -68,43 +66,43 @@ public class ObservationModel {
 
 
 	/// Unmarshaling constructor
-	ObservationModel(TransitionModel transition, JSONObject obj, Random r) {
+	ObservationModel(TransitionModel transition, Json obj, Random r) {
 		rand = r;
-		decoder = new NeuralNet((JSONObject)obj.get("decoder"));
-		encoder = new NeuralNet((JSONObject)obj.get("encoder"));
-		decoderExperimental = new NeuralNet((JSONObject)obj.get("decoderExperimental"));
-		encoderExperimental = new NeuralNet((JSONObject)obj.get("encoderExperimental"));
-		train = new Matrix((JSONObject)obj.get("train"));
-		validation = new Matrix((JSONObject)obj.get("validation"));
-		trainPos = ((Long)obj.get("trainPos")).intValue();
-		trainSize = ((Long)obj.get("trainSize")).intValue();
-		validationPos = ((Long)obj.get("validationPos")).intValue();
-		validationSize = ((Long)obj.get("validationSize")).intValue();
-		trainIters = ((Long)obj.get("trainIters")).intValue();
-		trainProgress = ((Long)obj.get("trainProgress")).intValue();
-		calibrationIters = ((Long)obj.get("calibrationIters")).intValue();
-		learningRate = (Double)obj.get("learningRate");
+		decoder = new NeuralNet(obj.get("decoder"));
+		encoder = new NeuralNet(obj.get("encoder"));
+		decoderExperimental = new NeuralNet(obj.get("decoderExperimental"));
+		encoderExperimental = new NeuralNet(obj.get("encoderExperimental"));
+		train = new Matrix(obj.get("train"));
+		validation = new Matrix(obj.get("validation"));
+		trainPos = (int)obj.getLong("trainPos");
+		trainSize = (int)obj.getLong("trainSize");
+		validationPos = (int)obj.getLong("validationPos");
+		validationSize = (int)obj.getLong("validationSize");
+		trainIters = (int)obj.getLong("trainIters");
+		trainProgress = (int)obj.getLong("trainProgress");
+		calibrationIters = (int)obj.getLong("calibrationIters");
+		learningRate = obj.getDouble("learningRate");
 		transitionModel = transition;
 	}
 
 
 	/// Marshals this model to a JSON DOM.
-	JSONObject marshal() {
-		JSONObject obj = new JSONObject();
-		obj.put("decoder", decoder.marshal());
-		obj.put("encoder", encoder.marshal());
-		obj.put("decoderExperimental", decoderExperimental.marshal());
-		obj.put("encoderExperimental", encoderExperimental.marshal());
-		obj.put("train", train.marshal());
-		obj.put("validation", validation.marshal());
-		obj.put("trainPos", trainPos);
-		obj.put("trainSize", trainSize);
-		obj.put("validationPos", validationPos);
-		obj.put("validationSize", validationSize);
-		obj.put("trainIters", trainIters);
-		obj.put("trainProgress", trainProgress);
-		obj.put("calibrationIters", calibrationIters);
-		obj.put("learningRate", learningRate);
+	Json marshal() {
+		Json obj = Json.newObject();
+		obj.add("decoder", decoder.marshal());
+		obj.add("encoder", encoder.marshal());
+		obj.add("decoderExperimental", decoderExperimental.marshal());
+		obj.add("encoderExperimental", encoderExperimental.marshal());
+		obj.add("train", train.marshal());
+		obj.add("validation", validation.marshal());
+		obj.add("trainPos", trainPos);
+		obj.add("trainSize", trainSize);
+		obj.add("validationPos", validationPos);
+		obj.add("validationSize", validationSize);
+		obj.add("trainIters", trainIters);
+		obj.add("trainProgress", trainProgress);
+		obj.add("calibrationIters", calibrationIters);
+		obj.add("learningRate", learningRate);
 		return obj;
 	}
 
@@ -118,8 +116,8 @@ public class ObservationModel {
 	void doSomeTraining() {
 
 		// Train the decoderExperimental and encoderExperimental together as an autoencoder
-		decoderExperimental.regularize(learningRate, 0.00001);
-		encoderExperimental.regularize(learningRate, 0.00001);
+		decoderExperimental.regularize(learningRate * 0.00001);
+		encoderExperimental.regularize(learningRate * 0.00001);
 		int index = rand.nextInt(trainSize);
 		double[] observation = train.row(index);
 		double[] belief = encoderExperimental.forwardProp(observation);
@@ -152,15 +150,16 @@ public class ObservationModel {
 			err2 = Math.sqrt(err2 / validationSize);
 			if(err2 < 0.85 * err1) {
 				// Update the observation model and reset the training data for the transition function
-				encoder.copy(encoderExperimental);
-				decoder.copy(decoderExperimental);
+				
+				encoder = new NeuralNet(encoderExperimental);
+				decoder = new NeuralNet(decoderExperimental);
 				transitionModel.trainPos = 0;
 				transitionModel.trainSize = 0;
 			}
 			else if(err1 < 0.85 * err2) {
 				// This should really never happen
-				encoderExperimental.copy(encoder);
-				decoderExperimental.copy(decoder);
+				encoderExperimental = new NeuralNet(encoder);
+				decoderExperimental = new NeuralNet(decoder);
 			}
 			//System.out.println("Observation error: " + Double.toString(err1) + ", " + Double.toString(err2));
 		}
